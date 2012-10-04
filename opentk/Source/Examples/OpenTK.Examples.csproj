@@ -48,7 +48,7 @@
     <BaseAddress>285212672</BaseAddress>
     <ConfigurationOverrideFile>
     </ConfigurationOverrideFile>
-    <DefineConstants>DEBUG;TRACE;</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;EXPERIMENTAL</DefineConstants>
     <DocumentationFile>
     </DocumentationFile>
     <DebugSymbols>true</DebugSymbols>
@@ -347,9 +347,7 @@
     <Compile Include="OpenTK\GLControl\GLControlSimple.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="OpenTK\GLControl\DerivedGLControl.cs">
-      <SubType>UserControl</SubType>
-    </Compile>
+    <Compile Include="OpenTK\GLControl\DerivedGLControl.cs" />
     <Compile Include="OpenTK\GLControl\MultipleGLControls.cs">
       <SubType>Form</SubType>
     </Compile>
