@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using OpenSSL.Crypto;
 using System.Runtime.InteropServices;
+using OpenSSL.Core;
 
 namespace scallion
 {
@@ -34,6 +35,16 @@ namespace scallion
 				return (new byte[][] { new byte[] { 0x02 }, Der2Size((ulong)val.Bytes), valb }).SelectMany(i=>i).ToArray();
 		}
 
+		static byte[] DerMaker(IEnumerable<BigNumber> ints)
+		{
+			return null;
+		}
+
+		static BigNumber stub_run_kernel(byte[] der)
+		{
+			return new BigNumber((uint)0x1000d); // new value of e
+		}
+
         static void Main(string[] args)
         {
 			RSA rsa = new RSA();
@@ -42,14 +53,56 @@ namespace scallion
 			// Generate a key
 			rsa.GenerateKeys(KEYLEN,3,null,null);
 
-			// Make the der
-			byte[] mod_der = Int2DerBytes(rsa.PublicModulus);
-			byte[] exp_der = Int2DerBytes(rsa.PublicExponent, 3);
-			byte[] der = (new byte[][] { new byte[] { 0x30 }, Der2Size((ulong)(mod_der.Length + exp_der.Length)), mod_der, exp_der }).SelectMany(i=>i).ToArray();
+			// Make the DER
+			byte[] der = new byte[KEYLEN+100];
+			unsafe // must be a better way to do this!
+			{
+				IntPtr hglob = Marshal.AllocHGlobal(der.Length);
+				void* ptr = hglob.ToPointer();
+				void** ptr2 = &ptr;
 
-			foreach(var item in der.Take (30))
+				Native.i2d_RSAPublicKey(rsa.Handle, (byte**)ptr2);
+
+				Marshal.Copy(hglob,der,0,der.Length);
+				Marshal.FreeHGlobal(hglob);
+			}
+
+			// RUN THE KERNEL - output: new value of e
+			BigNumber e = stub_run_kernel(der);
+			rsa.PublicExponent = e; // stick e back into the key
+
+			// Check the key for sanity and recalculate Private exponent (d)
+			{
+				// Get some bignum parameters
+				BigNumber p1, q1, gcd, lambda;
+				p1 = rsa.SecretPrimeFactorP - 1;   // p-1
+				q1 = rsa.SecretPrimeFactorQ - 1;   // q-1
+				gcd = BigNumber.gcd(p1,q1);		   // gcd of (p-1)(q-1)
+				lambda = BigNumber.lcm(p1,q1,gcd); // lcm of (p-1)(q-1)
+
+				// Check for sanity
+				if(BigNumber.gcd(lambda,e) != 1) // check if e is coprime to lambda(n)
+					throw new Exception("Key not sane - e and lcm not coprime");
+				if(!(rsa.PublicExponent < rsa.PublicModulus - 1))
+					throw new Exception("Key not sane - not (e < n-1)");
+
+				// Recalculate D and stick it in the key
+				rsa.PrivateExponent = BigNumber.mod_inverse(rsa.PublicExponent,lambda);
+				rsa.DmodP1 = BigNumber.mod(rsa.PrivateExponent,p1);
+				rsa.DmodQ1 = BigNumber.mod(rsa.PrivateExponent,q1);
+				rsa.IQmodP = BigNumber.mod_inverse(rsa.SecretPrimeFactorQ,rsa.SecretPrimeFactorP);
+
+				// Ask OpenSSL if it's sane
+				if(!rsa.Check())
+					throw new Exception("Key not sane - openssl says so");
+			}
+
+			// Output the key in the right format
+			Console.Write(rsa.PrivateKeyAsPEM);
+
+			/*foreach(var item in der.Take (30))
 				Console.Write(item.ToString("x") + " ");
-			Console.WriteLine();
+			Console.WriteLine();*/
 
 			// Kernel steps
 			// 1. Copy global DER into local space (leave extra bytes)
@@ -58,7 +111,6 @@ namespace scallion
 			// 4. Get the Onion encoding of this hash
 			// 5. Compare to pattern, if win, quit
 			// Be able to update the exponent size
-
 			// Watch out for endianness of exponent
         }
     }
