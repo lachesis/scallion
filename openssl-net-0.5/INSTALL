@@ -1,0 +1,21 @@
+OpenSSL.NET - INSTALL
+
+Both libeay32.dll and ssleay32.dll are native C DLLs and as such
+depend on the MSVC 2010 CRT. This means you must install the
+Microsoft Visual C++ 2010 Redistributable Package (x86) on each machine
+that you wish to use OpenSSL.NET.
+
+Alternatively, you can build your own version of libeay32.dll and ssleay32.dll
+from source to meet whatever requirements are necessary in your environment.
+For development, I build these DLLs with debugging symbols so that I can 
+step into them as needed. One could also statically link the CRT so that
+the MSVC 2008 CRT is not required to be installed on the target machine.
+
+Make sure you have libeay32.dll and ssleay32.dll in the current working
+directory of your application or in your PATH.
+
+In your .NET project, add a reference to the ManagedOpenSsl.dll assembly.
+
+
+If you're having trouble with the native library being loaded under mono,
+try using MONO_LOG_LEVEL=debug when invoking mono.

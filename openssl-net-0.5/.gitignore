@@ -1,0 +1,12 @@
+bin
+obj
+dist
+.*.swp
+*.*~
+*.user*
+*.suo
+*.ncb
+*.pidb
+*.aps
+*.eto
+.DS_Store
