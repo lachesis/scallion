@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Condition="'$(Configuration)' == 'Documentation'">
+    <OutputPath>.</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'">
+    <OutputPath>.</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <OutputPath>.</OutputPath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Nsis'">
+    <OutputPath>.</OutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ProjectGuid>{ADC34399-7613-44D2-90B2-19250F06FE7A}</ProjectGuid>
+    <TargetFrameworkVersion>v2.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="opentk.nsi" />
+  </ItemGroup>
+  <Target Name="Build">
+    <Exec Command="makensis opentk.nsi" />
+    <ReadLinesFromFile File="../../Version.txt">
+      <Output TaskParameter="Lines" ItemName="Version"/>
+    </ReadLinesFromFile>
+    <Copy SourceFiles=".\opentk.exe" DestinationFiles="@(Version->'../../opentk-%(Identity).exe')" />
+  </Target>
+  <Target Name="Clean">
+    <CreateItem Include=".\opentk.exe;..\..\opentk-*.exe">
+      <Output TaskParameter="Include" ItemName="FilesToDelete" />
+    </CreateItem>
+    <Delete Files="@(FilesToDelete)" />
+  </Target>
+  <Target Name="Rebuild">
+    <CallTarget Targets="Clean" />
+    <CallTarget Targets="Build" />
+  </Target>
+</Project>
