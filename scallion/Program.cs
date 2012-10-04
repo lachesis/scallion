@@ -36,30 +36,35 @@ namespace scallion
 
         static void Main(string[] args)
         {
-			RSA rsa = new RSA();
-			int KEYLEN = 1024;
+            foreach (var item in  OpenGLInfo.GetFullPlatformInfo())
+	        {
+                Console.WriteLine("Name:{0} Version:{1} Vendor:{2} Profile:{3}", item.Name, item.Version, item.Vendor, item.Profile);
+	        }
 
-			// Generate a key
-			rsa.GenerateKeys(KEYLEN,3,null,null);
+            //RSA rsa = new RSA();
+            //int KEYLEN = 1024;
 
-			// Make the der
-			byte[] mod_der = Int2DerBytes(rsa.PublicModulus);
-			byte[] exp_der = Int2DerBytes(rsa.PublicExponent, 3);
-			byte[] der = (new byte[][] { new byte[] { 0x30 }, Der2Size((ulong)(mod_der.Length + exp_der.Length)), mod_der, exp_der }).SelectMany(i=>i).ToArray();
+            //// Generate a key
+            //rsa.GenerateKeys(KEYLEN,3,null,null);
 
-			foreach(var item in der.Take (30))
-				Console.Write(item.ToString("x") + " ");
-			Console.WriteLine();
+            //// Make the der
+            //byte[] mod_der = Int2DerBytes(rsa.PublicModulus);
+            //byte[] exp_der = Int2DerBytes(rsa.PublicExponent, 3);
+            //byte[] der = (new byte[][] { new byte[] { 0x30 }, Der2Size((ulong)(mod_der.Length + exp_der.Length)), mod_der, exp_der }).SelectMany(i=>i).ToArray();
 
-			// Kernel steps
-			// 1. Copy global DER into local space (leave extra bytes)
-			// 2. Increase exponent (using stride) in loop
-			// 3. Hash with SHA1
-			// 4. Get the Onion encoding of this hash
-			// 5. Compare to pattern, if win, quit
-			// Be able to update the exponent size
+            //foreach(var item in der.Take (30))
+            //    Console.Write(item.ToString("x") + " ");
+            //Console.WriteLine();
 
-			// Watch out for endianness of exponent
+            //// Kernel steps
+            //// 1. Copy global DER into local space (leave extra bytes)
+            //// 2. Increase exponent (using stride) in loop
+            //// 3. Hash with SHA1
+            //// 4. Get the Onion encoding of this hash
+            //// 5. Compare to pattern, if win, quit
+            //// Be able to update the exponent size
+
+            //// Watch out for endianness of exponent
         }
     }
 }
