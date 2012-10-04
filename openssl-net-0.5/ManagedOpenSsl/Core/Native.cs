@@ -45,7 +45,7 @@ namespace OpenSSL.Core
 		public static bool Enabled { get; set; }
 	}
 
-	internal enum CryptoLockTypes
+	public enum CryptoLockTypes
 	{
 		CRYPTO_LOCK_ERR = 1,
 		CRYPTO_LOCK_EX_DATA = 2,
@@ -116,7 +116,7 @@ namespace OpenSSL.Core
 	/// This is the low-level C-style interface to the crypto API.
 	/// Use this interface with caution.
 	/// </summary>
-	internal class Native
+	public class Native
 	{
 		/// <summary>
 		/// This is the name of the DLL that P/Invoke loads and tries to bind all of
@@ -152,9 +152,9 @@ namespace OpenSSL.Core
 		#region Initialization
 		static Native()
 		{
-			Version lib = Version.Library;
-			Version wrapper = Version.Wrapper;
-			uint mmf = lib.Raw & 0xfffff000;
+			//Version lib = Version.Library;
+			//Version wrapper = Version.Wrapper;
+			//uint mmf = lib.Raw & 0xfffff000;
 			// Shut up about versions!
 			/*if (mmf != wrapper.Raw)
 				throw new Exception(string.Format("Invalid version of {0}, expecting {1}, got: {2}",
@@ -969,6 +969,9 @@ namespace OpenSSL.Core
 
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int RSA_generate_key_ex(IntPtr rsa, int bits, IntPtr e, bn_gencb_st cb);
+
+		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
+		public extern static int i2d_RSAPublicKey(IntPtr rsa, IntPtr der);
 
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int RSA_check_key(IntPtr rsa);
