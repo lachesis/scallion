@@ -1,0 +1,116 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.30703</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{74975B7A-5D4B-41E6-8588-9F2E90BE607A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>openssl</RootNamespace>
+    <AssemblyName>openssl</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Core\Asn1DateTime.cs" />
+    <Compile Include="Core\Asn1Integer.cs" />
+    <Compile Include="Core\Asn1Object.cs" />
+    <Compile Include="Core\Asn1String.cs" />
+    <Compile Include="Core\Base.cs" />
+    <Compile Include="Core\BigNumber.cs" />
+    <Compile Include="Core\BIO.cs" />
+    <Compile Include="Core\Crypto.cs" />
+    <Compile Include="Core\MemoryTracker.cs" />
+    <Compile Include="Core\Native.cs" />
+    <Compile Include="Core\Objects.cs" />
+    <Compile Include="Core\OpenSslException.cs" />
+    <Compile Include="Core\Password.cs" />
+    <Compile Include="Core\Random.cs" />
+    <Compile Include="Core\Stack.cs" />
+    <Compile Include="Core\Version.cs" />
+    <Compile Include="Crypto\Cipher.cs" />
+    <Compile Include="Crypto\CryptoKey.cs" />
+    <Compile Include="Crypto\DH.cs" />
+    <Compile Include="Crypto\DSA.cs" />
+    <Compile Include="Crypto\EC\BuiltinCurve.cs" />
+    <Compile Include="Crypto\EC\DSASignature.cs" />
+    <Compile Include="Crypto\EC\Group.cs" />
+    <Compile Include="Crypto\EC\Key.cs" />
+    <Compile Include="Crypto\EC\Method.cs" />
+    <Compile Include="Crypto\EC\Point.cs" />
+    <Compile Include="Crypto\HMAC.cs" />
+    <Compile Include="Crypto\MessageDigest.cs" />
+    <Compile Include="Crypto\RSA.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SSL\Enums.cs" />
+    <Compile Include="SSL\Ssl.cs" />
+    <Compile Include="SSL\SslCipher.cs" />
+    <Compile Include="SSL\SslContext.cs" />
+    <Compile Include="SSL\SslMethod.cs" />
+    <Compile Include="SSL\SslStream.cs" />
+    <Compile Include="SSL\SslStreamBase.cs" />
+    <Compile Include="SSL\SslStreamClient.cs" />
+    <Compile Include="SSL\SslStreamServer.cs" />
+    <Compile Include="X509\Configuration.cs" />
+    <Compile Include="X509\Identity.cs" />
+    <Compile Include="X509\PKCS12.cs" />
+    <Compile Include="X509\PKCS7.cs" />
+    <Compile Include="X509\VerifyResult.cs" />
+    <Compile Include="X509\X509Certificate.cs" />
+    <Compile Include="X509\X509CertificateAuthority.cs" />
+    <Compile Include="X509\X509CertificateInfo.cs" />
+    <Compile Include="X509\X509Chain.cs" />
+    <Compile Include="X509\X509Extension.cs" />
+    <Compile Include="X509\X509Name.cs" />
+    <Compile Include="X509\X509Object.cs" />
+    <Compile Include="X509\X509Request.cs" />
+    <Compile Include="X509\X509Store.cs" />
+    <Compile Include="X509\X509StoreContext.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\native\windows\x86\libeay32.dll">
+      <Link>libeay32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="..\native\windows\x86\ssleay32.dll">
+      <Link>ssleay32.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
