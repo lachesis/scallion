@@ -153,7 +153,7 @@ namespace OpenSSL.Core
 		/// <summary>
 		/// Raw unmanaged pointer
 		/// </summary>
-		protected IntPtr ptr;
+		public IntPtr ptr;
 
 		/// <summary>
 		/// If this object is the owner, then call the appropriate native free function.
