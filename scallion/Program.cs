@@ -47,11 +47,13 @@ namespace scallion
 
         static void Main(string[] args)
         {
-			RSA rsa = new RSA();
-			int KEYLEN = 1024;
+            foreach (var item in  OpenGLInfo.GetFullPlatformInfo())
+	        {
+                Console.WriteLine("Name:{0} Version:{1} Vendor:{2} Profile:{3}", item.Name, item.Version, item.Vendor, item.Profile);
+	        }
 
-			// Generate a key
-			rsa.GenerateKeys(KEYLEN,3,null,null);
+            //RSA rsa = new RSA();
+            //int KEYLEN = 1024;
 
 			// Make the DER
 			byte[] der = new byte[KEYLEN+100];
