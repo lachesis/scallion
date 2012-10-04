@@ -65,7 +65,7 @@
     <Compile Include="DataConvert.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\openssl-net-0.5\openssl\openssl.csproj">
+    <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">
       <Project>{74975B7A-5D4B-41E6-8588-9F2E90BE607A}</Project>
       <Name>openssl</Name>
     </ProjectReference>
