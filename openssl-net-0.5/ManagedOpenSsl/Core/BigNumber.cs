@@ -252,6 +252,54 @@ namespace OpenSSL.Core
 		
 		#endregion
 
+		#region Pseudo Operators
+		public static BigNumber mod(BigNumber lhs, BigNumber rhs)
+		{
+			BigNumber ret = new BigNumber();
+			Context ctx = new Context();
+			ctx.Start();
+			Native.ExpectSuccess(Native.BN_div(IntPtr.Zero, ret.Handle, lhs.Handle, rhs.Handle, ctx.Handle));
+			ctx.End();
+			return ret;
+		}
+
+		public static BigNumber mod_inverse(BigNumber lhs, BigNumber rhs)
+		{
+			BigNumber ret = new BigNumber();
+			Context ctx = new Context();
+			ctx.Start();
+			Native.ExpectSuccess(Native.BN_mod_inverse(ret.Handle, lhs.Handle, rhs.Handle, ctx.Handle));
+			ctx.End();
+			return ret;
+		}
+
+		public static BigNumber gcd(BigNumber lhs, BigNumber rhs)
+		{
+			BigNumber ret = new BigNumber();
+			Context ctx = new Context();
+			ctx.Start();
+			Native.ExpectSuccess(Native.BN_gcd(ret.Handle, lhs.Handle, rhs.Handle, ctx.Handle));
+			ctx.End();
+			return ret;
+		}
+
+		public static BigNumber lcm(BigNumber lhs, BigNumber rhs, BigNumber gcd)
+		{
+			BigNumber ret = new BigNumber();
+			BigNumber tmp = new BigNumber();
+			Context ctx = new Context();
+			ctx.Start();
+
+			Native.ExpectSuccess(Native.BN_div(tmp.Handle,IntPtr.Zero,lhs.Handle,gcd.Handle,ctx.Handle));
+			Native.ExpectSuccess(Native.BN_mul(ret.Handle,rhs.Handle,tmp.Handle,ctx.Handle));
+
+			ctx.End();
+			return ret;
+		}
+		#endregion
+
+
+
 		#region Operators
 		/// <summary>
 		/// Calls BN_add()

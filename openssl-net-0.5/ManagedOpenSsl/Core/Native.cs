@@ -116,7 +116,7 @@ namespace OpenSSL.Core
 	/// This is the low-level C-style interface to the crypto API.
 	/// Use this interface with caution.
 	/// </summary>
-	public class Native
+	unsafe public class Native
 	{
 		/// <summary>
 		/// This is the name of the DLL that P/Invoke loads and tries to bind all of
@@ -971,7 +971,7 @@ namespace OpenSSL.Core
 		public extern static int RSA_generate_key_ex(IntPtr rsa, int bits, IntPtr e, bn_gencb_st cb);
 
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
-		public extern static int i2d_RSAPublicKey(IntPtr rsa, IntPtr der);
+		public extern static int i2d_RSAPublicKey(IntPtr rsa, byte** der);
 
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int RSA_check_key(IntPtr rsa);
@@ -1101,6 +1101,13 @@ namespace OpenSSL.Core
 		public extern static int BN_set_word(IntPtr a, uint w);
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static uint BN_get_word(IntPtr a);
+		//[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
+		//public extern static int BN_div(IntPtr rv, IntPtr rem, IntPtr m, IntPtr d, IntPtr ctx);
+		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
+		public extern static int BN_mod_inverse(IntPtr ret, IntPtr a, IntPtr c, IntPtr ctx);
+		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
+		public extern static int BN_gcd(IntPtr r, IntPtr a, IntPtr b, IntPtr ctx);
+		
 		//#define BN_GENCB_set(gencb, callback, cb_arg) { \
 		//        BN_GENCB *tmp_gencb = (gencb); \
 		//        tmp_gencb->ver = 2; \
