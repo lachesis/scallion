@@ -1,0 +1,3 @@
+[submodule "opentk"]
+	path = opentk
+	url = https://github.com/mono/opentk
