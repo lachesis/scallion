@@ -50,6 +50,16 @@ namespace scallion
 			foreach(var item in der.Take (30))
 				Console.Write(item.ToString("x") + " ");
 			Console.WriteLine();
+
+			// Kernel steps
+			// 1. Copy global DER into local space (leave extra bytes)
+			// 2. Increase exponent (using stride) in loop
+			// 3. Hash with SHA1
+			// 4. Get the Onion encoding of this hash
+			// 5. Compare to pattern, if win, quit
+			// Be able to update the exponent size
+
+			// Watch out for endianness of exponent
         }
     }
 }
