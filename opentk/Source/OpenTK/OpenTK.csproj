@@ -108,19 +108,15 @@
   <ItemGroup>
     <Reference Include="System">
       <Name>System</Name>
-      <Private>False</Private>
     </Reference>
     <Reference Include="System.Data">
       <Name>System.Data</Name>
-      <Private>False</Private>
     </Reference>
     <Reference Include="System.Drawing">
       <Name>System.Drawing</Name>
-      <Private>False</Private>
     </Reference>
     <Reference Include="System.Xml">
       <Name>System.Xml</Name>
-      <Private>False</Private>
     </Reference>
   </ItemGroup>
   <ItemGroup>
