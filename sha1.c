@@ -173,13 +173,13 @@ void find_exp_in_der(char *der, int *exp_addr, int *exp_len, int *total_len)
 
 
 // put the new exponent value into the pubkey der
-void change_exp_in_der_robust(char *der, int derlen, unsigned long newexp)
+void change_exp_in_der_robust(char *der, int derlen, unsigned long newexp, int *exp_addr_ret)
 {
     int bytes_needed = 0;
     int explen = 0, totlen = 0, exp_addr=0;
     long ltotlen;
     uint8 exp_bytes[8];
-    int idx = 0;
+    int idx = 0, i = 0;
 
     // find number of bytes needed for exp
     while(newexp != 0) {
@@ -190,7 +190,7 @@ void change_exp_in_der_robust(char *der, int derlen, unsigned long newexp)
 
     // if the top bit of the number is set, we need to prepend 0x00
     if((exp_bytes[bytes_needed-1] & 0x80) == 0x80)
-        exp_bytes[++bytes_needed] = 0;
+        exp_bytes[bytes_needed++] = 0;
 
     // get a pointer to the exp data field
     find_exp_in_der(der,&exp_addr,&explen,&totlen);
@@ -198,7 +198,7 @@ void change_exp_in_der_robust(char *der, int derlen, unsigned long newexp)
     printf("explen: %lld, bn: %lld\n",explen,bytes_needed);
 
     // resize if needed
-    if(explen < bytes_needed) {
+    if(explen != bytes_needed) {
         // First increase the sequence length
         // NOTE: this does NOT recalculate - it just increments the byte
         // If the sequence is likely to be near 127 or n*256 bytes long, 
@@ -206,24 +206,33 @@ void change_exp_in_der_robust(char *der, int derlen, unsigned long newexp)
         idx++;
         if((der[idx] & 0x80) == 0x80)
             idx += (der[idx] & 0x7F); // move to the length byte
-        der[idx] += (uint8)(bytes_needed - explen);
+        der[idx] += (int8)(bytes_needed - explen);
 
         // Now increase the exponent length
         // Same caveat as for seq length, although exp will never be that long
         der[exp_addr-1] = bytes_needed;
+
+        // Write 0x80 after exp bytes for SHA-1 padding
+        der[exp_addr+bytes_needed] = 0x80;
+
+        // Write some 0x00s after that
+        for(i=0;i<explen-bytes_needed;i++)
+            der[exp_addr+bytes_needed+i+1] = 0;
+
+        // Update the SHA1 padding value
+        totlen += bytes_needed - explen;
+        ltotlen = (long)totlen * 8; // length in bits
+        for(i=0;i<8;i++) {
+            der[derlen-1-i] = ltotlen & 0xFF;
+            ltotlen >>= 8;
+        }
     }
 
     // Write the exp bytes (big endian)
     for(idx=0;idx<bytes_needed;idx++)
         der[exp_addr+bytes_needed-1-idx] = exp_bytes[idx];
 
-    // Update the SHA1 padding value
-    totlen += bytes_needed - explen;
-    ltotlen = (long)totlen * 8; // length in bits
-    for(idx=0;idx<8;idx++) { // we're done with idx so let's reuse it
-        der[derlen-1-idx] = ltotlen & 0xFF;
-        ltotlen >>= 8;
-    }
+    if(exp_addr_ret) *exp_addr_ret = exp_addr;
 }
 
 // W is the hash work block
@@ -244,7 +253,7 @@ void change_exp_in_W(uint32 *W, int chunk, int exp_addr, unsigned long newexp)
 
     // if the top bit of the number is set, we need to prepend 0x00
     if((exp_bytes[bytes_needed-1] & 0x80) == 0x80)
-        exp_bytes[++bytes_needed] = 0;
+        exp_bytes[bytes_needed++] = 0;
 
     // each chunk is 64 bytes, so get the address in bytes into W
     exp_addr -= chunk * 64;
@@ -279,10 +288,10 @@ void print_hash(uint32 *H)
 
     char Hc[10]; // first 10 bytes of H in big-endian format
     int i,b;
-    for(i=0; i<20; i++)
+    for(i=0; i<10; i++)
         Hc[i] = (H[i/4]>>(8*(3-i%4)))&0xff;
 
-    for(i=0; i<20; i++)
+    for(i=0; i<10; i++)
         printf("%hhx ",Hc[i]);
     printf("\n");
 
@@ -292,8 +301,61 @@ void print_hash(uint32 *H)
     printf("%s\n",dest);
 }
 
+uint64 calculate_threshold(uint64 exp)
+{
+    uint64 tmp;
+    uint shift_to_top_byte=0;
+
+    // Find how many bytes we must shift to get the top byte of exp
+    tmp = exp;
+    while(tmp != 0) {
+        tmp >>= 8;
+        shift_to_top_byte++;
+    }
+
+    // Calculate the threshold
+    if(((exp >> shift_to_top_byte*8)&0xFF) <= 0x7F)
+        return (uint64)0x80 << shift_to_top_byte*8;
+    else
+        return (uint64)0x80 << (shift_to_top_byte+1)*8;
+}
+
+void sha1_init(uint *H)
+{
+    H[0] = 0x67452301;
+    H[1] = 0xEFCDAB89;
+    H[2] = 0x98BADCFE;
+    H[3] = 0x10325476;
+    H[4] = 0xC3D2E1F0;
+}
+
+void print_der(uint8 *der)
+{
+    int i;
+    printf("uint8 der[192] = { ");
+    for(i=0;i<192;i++)
+        printf("0x%02hhx, ",der[i]);
+    printf("};\n");
+}
+
+void print_W(uint32 *W)
+{
+    int i;
+    printf("uint32 W[80] = { ");
+    for(i=0;i<16;i++)
+        printf("0x%08x, ",W[i]);
+    printf("};\n");
+}
+
+
+#define MIN_EXP 0x0101
+#define MAX_EXP 0x0100000001
+#define THREAD 0
+#define THREAD_COUNT 512
+
 int main() {
-    uint32 H[5] = { 0x67452301, 0xEFCDAB89, 0x98BADCFE, 0x10325476, 0xC3D2E1F0 };
+    uint64 exp_thresh,exp;
+    uint32 H[5];
     uint32 Hmid[5];
     uint32 W[80];
     int i,exp_addr,explen,totlen;
@@ -303,21 +365,55 @@ int main() {
                        0x4c, 0x06, 0x5a, 0x4d, 0xec, 0x07, 0x74, 0x8f, 0x41, 0x11, 0x9d, 0x69, 0x97, 0x15, 0x2b, 0x83, 0x9d, 0x30, 0x2e, 0x15, 0x2b, 0x41, 0x6f, 0x5a, 0xe1, 0x65, 0x25, 0x15, 0x41, 0x07, 0x17, 0x95,
                        0xd3, 0xf0, 0xf5, 0x27, 0x81, 0xb1, 0x27, 0x02, 0x03, 0x01, 0x00, 0x01, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
                        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x04, 0x60 };
-    
-    copy_der_to_W(der,W,0);
-    sha1_block(W,H);
 
-    copy_der_to_W(der,W,1);
-    sha1_block(W,H);
 
-    for(i=0;i<5;i++) Hmid[i] = H[i];
+    exp = MIN_EXP+THREAD*2;
+    exp_thresh = 0; // do the full slow hash the first time
 
-    copy_der_to_W(der,W,2);
-    sha1_block(W,H);
+    for(;exp<MAX_EXP;exp+=THREAD_COUNT*2) {
+        printf("Trying exponent: %lld\n",exp);
+        // we'll have to grow the DER and redo the hash from the beginning
+        if(exp >= exp_thresh) {
+            // Calculate the new threshold
+            exp_thresh = calculate_threshold(exp);
+            printf("Hit threshold - recalculating: 0x%lx\n",exp_thresh);
 
-    print_hash(H);
+            // Do the full, slow DER update and learn the exp_addr
+            change_exp_in_der_robust(der,192,exp,&exp_addr);
+            print_der(der);
 
-    find_exp_in_der(der,&exp_addr,&explen,&totlen);
+            // Redo the initial SHA-1 steps 
+            sha1_init(H);
+            copy_der_to_W(der,W,0);
+            sha1_block(W,H);
+            copy_der_to_W(der,W,1);
+            sha1_block(W,H);
+
+            // Save off the midstate
+            for(i=0;i<5;i++) Hmid[i] = H[i];
+
+            // Copy the last chunk into W
+            copy_der_to_W(der,W,2);
+            print_W(W);
+        }
+
+        // We can just twiddle the bits in W directly
+        change_exp_in_W(W,2,exp_addr,exp);
+        print_W(W);
+
+        // Reload the midstate
+        for(i=0;i<5;i++) H[i] = Hmid[i];
+
+        // Do the last step of the hash
+        sha1_block(W,H);
+
+        // And print
+        print_hash(H);
+    }
+
+
+
+    /*find_exp_in_der(der,&exp_addr,&explen,&totlen);
     
     for(i=0;i<5;i++) H[i] = Hmid[i];
     
@@ -343,7 +439,7 @@ int main() {
     printf("};\n");
     sha1_block(W,H);
     print_hash(H);
-
+*/
     return 0;
 }
 

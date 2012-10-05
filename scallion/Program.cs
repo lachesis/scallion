@@ -147,7 +147,25 @@ namespace scallion
 			//rsa.GenerateKey(1024);
 			RSAWrapper rsa = new RSAWrapper("key.pem");
 
-			rsa.ChangePublicExponent(0x010003);
+			{
+				byte[] eder = rsa.DER;
+				int midlength = 64-eder.Length%64-9;
+				if(midlength < 0) midlength = 0;
+				byte[] der = (new byte[][] { eder, new byte[] {0x80}, new byte[midlength], Mono.DataConverter.Pack("^L",new object[] { eder.Length*8 }) }).SelectMany(i=>i).ToArray();
+				Console.Write ("uint8 der[{0}] = {{ ",der.Length);
+				for (int j = 0; j < der.Length; j+=1)
+					Console.Write("0x{0:x2}, ",der[j]);
+				Console.WriteLine ("}};");
+			}
+
+			uint[] exps = { 3329, 8389889, 8396033, 2147484929 };
+			string[] hash = { "byfmhvyb6ndhwqvt", "rbchafzx2so5rh7i", "n3y7nkhpllhc37xg", "joiqzbhcabjp4j6f" };
+			for (int q = 0; q < 4; q++) {
+				rsa.ChangePublicExponent(exps[q]);
+				Console.WriteLine("exp: {0}, pred: {1}, act: {2}, equal? {3}",exps[q],hash[q],rsa.OnionHash,hash[q] == rsa.OnionHash);
+			}
+
+			rsa.ChangePublicExponent(3329);
 
 			// Output the onion address
 			Console.WriteLine(rsa.OnionHash + ".onion");
@@ -156,19 +174,19 @@ namespace scallion
             Console.Write(rsa.Rsa.PrivateKeyAsPEM);
 
 			// output the der
-			byte[] eder = rsa.DER;
-			int midlength = 64-eder.Length%64-9;
-			if(midlength < 0) midlength = 0;
-			byte[] der = (new byte[][] { eder, new byte[] {0x80}, new byte[midlength], Mono.DataConverter.Pack("^L",new object[] { eder.Length*8 }) }).SelectMany(i=>i).ToArray();
-
-			Console.Write ("uint8 der[{0}] = {{ ",der.Length);
-			for (int j = 0; j < der.Length; j+=1) {
-				Console.Write("0x{0:x2}, ",der[j]);
+			{
+				byte[] eder = rsa.DER;
+				int midlength = 64-eder.Length%64-9;
+				if(midlength < 0) midlength = 0;
+				byte[] der = (new byte[][] { eder, new byte[] {0x80}, new byte[midlength], Mono.DataConverter.Pack("^L",new object[] { eder.Length*8 }) }).SelectMany(i=>i).ToArray();
+				Console.Write ("uint8 der[{0}] = {{ ",der.Length);
+				for (int j = 0; j < der.Length; j+=1)
+					Console.Write("0x{0:x2}, ",der[j]);
+				Console.WriteLine ("}};");
 			}
-			Console.WriteLine ("}};");
 
-			var sha1 = new System.Security.Cryptography.SHA1Managed();
-			Console.WriteLine(BitConverter.ToString(sha1.ComputeHash(eder)));
+			//var sha1 = new System.Security.Cryptography.SHA1Managed();
+			//Console.WriteLine(BitConverter.ToString(sha1.ComputeHash(eder)));
 			                 
 
 
