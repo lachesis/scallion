@@ -126,7 +126,6 @@ namespace scallion
 			foreach(byte b in der.Skip(3+4+1024/8))
 				Console.Write("0x{0:x2} ",b);
 			Console.WriteLine();
-
 		}
 
 		static void ExpTwiddleOSSL(RSAWrapper rsa, uint exp)
@@ -141,52 +140,39 @@ namespace scallion
 
         static void Main(string[] args)
         {
-			var v = new CLDeviceInfo(CLDeviceInfo.GetDeviceIds()[0]);
-			Console.WriteLine(v.MaxComputeUnits);
+			//var v = new CLDeviceInfo(CLDeviceInfo.GetDeviceIds()[0]);
+			//Console.WriteLine(v.MaxComputeUnits);
 
-
-	
-			/*RSAWrapper rsa = new RSAWrapper();
+			RSAWrapper rsa = new RSAWrapper();
 			rsa.GenerateKey(1024);
 
-			byte[] der = new byte[][] { rsa.DER, new byte[10] }.SelectMany(i=>i).ToArray();
-			ExpTwiddle(der,0x7F);
-			ExpTwiddleOSSL(rsa,0x7F);
-			ExpTwiddle(der,0x80);
-			ExpTwiddleOSSL(rsa,0x80);
-			ExpTwiddle(der,0x81);
-			ExpTwiddleOSSL(rsa,0x81);
-			ExpTwiddle(der,0xFADEAD);
-			ExpTwiddleOSSL(rsa,0xFADEAD);*/
+			// Output the onion address
+			Console.WriteLine(rsa.OnionHash + ".onion");
 
-			/*{
-				rsa.Rsa.PublicExponent = 0x7F;
-				byte[] der = rsa.DER;
-				Console.Write("exponent: 0x{0:x8}  bytes: ",rsa.Rsa.PublicExponent);
-				foreach(byte b in der.Skip(3+4+1024/8))
-					Console.Write("0x{0:x2} ",b);
-				Console.WriteLine();
+            // Output the key
+            Console.Write(rsa.Rsa.PrivateKeyAsPEM);
+
+			// output the der
+			byte[] eder = rsa.DER;
+			int midlength = 64-eder.Length%64-9;
+			if(midlength < 0) midlength = 0;
+			byte[] der = (new byte[][] { eder, new byte[] {0x80}, new byte[midlength], Mono.DataConverter.Pack("^L",new object[] { eder.Length*8 }) }).SelectMany(i=>i).ToArray();
+
+			for (int j = 0; j < der.Length; j+=64) {
+				Console.Write ("uint W[80] = { ");
+				for (int i = j; i < j+64; i+=4) {
+					Console.Write("0x{0:x2}{1:x2}{2:x2}{3:x2}, ",der[i],der[i+1],der[i+2],der[i+3]);
+				}
+				Console.WriteLine ("};");
 			}
-			{
-				rsa.Rsa.PublicExponent = 0x80;
-				byte[] der = rsa.DER;
-				Console.Write("exponent: 0x{0:x8}  bytes: ",rsa.Rsa.PublicExponent);
-				foreach(byte b in der.Skip(3+4+1024/8))
-					Console.Write("0x{0:x2} ",b);
-				Console.WriteLine();
-			}*/
 
-			// twiddle the der
+			var sha1 = new System.Security.Cryptography.SHA1Managed();
+			Console.WriteLine(BitConverter.ToString(sha1.ComputeHash(eder)));
+			                 
 
-			/*for (int i = 0; i < 1024; i++) {			
-				rsa.Rsa.PublicExponent += new BigNumber((uint)i*1024);
-				byte[] der = rsa.DER;
-				Console.Write("exponent: 0x{0:x8}  bytes: ",rsa.Rsa.PublicExponent);
-				foreach(byte b in der.Skip(3+4+1024/8))
-					Console.Write("0x{0:x2} ",b);
-				Console.WriteLine();
-			}*/
+
 			/*
+		
             // RUN THE KERNEL - output: new value of e
             BigNumber e = stub_run_kernel(rsa.DER);
             
