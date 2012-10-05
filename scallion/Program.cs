@@ -2,8 +2,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using OpenSSL.Crypto;
+
 using System.Runtime.InteropServices;
+using OpenSSL.Crypto;
 using OpenSSL.Core;
 
 namespace scallion
@@ -50,10 +51,12 @@ namespace scallion
 		        idx++;
 		        if((der[idx] & 0x80) == 0x80)
 		            idx += (der[idx] & 0x7F); // move to the length byte
-		        der[idx] += bytes_needed - explen;
+		        der[idx] += (byte)(bytes_needed - explen);
 
 		        // Now increase the exponent length
 		        // Same caveat as for seq length, although exp will never be that long
+				// Even more strongly, won't work if exp needs more than 1 length byte
+				// Still, exp will never reach 127 bytes long, so not a problem
 				der[exp_addr-1] = (byte)bytes_needed;
 		    }
 
@@ -138,21 +141,12 @@ namespace scallion
 
         static void Main(string[] args)
         {
-            /*foreach (var item in OpenGLInfo.GetFullDeviceInfo())
-            {
-                System.IO.StringWriter writer = new System.IO.StringWriter();
-                ObjectDumper.Write(item, 2, writer);
-                Console.WriteLine(writer.ToString());
-                Console.WriteLine();
-            }
-            Console.ReadKey();
+			var v = new CLDeviceInfo(CLDeviceInfo.GetDeviceIds()[0]);
+			Console.WriteLine(v.MaxComputeUnits);
 
-            foreach (var item in  OpenGLInfo.GetFullPlatformInfo())
-            {
-                Console.WriteLine("Name:{0} Version:{1} Vendor:{2} Profile:{3}", item.Name, item.Version, item.Vendor, item.Profile);
-            }*/
 
-			RSAWrapper rsa = new RSAWrapper();
+	
+			/*RSAWrapper rsa = new RSAWrapper();
 			rsa.GenerateKey(1024);
 
 			byte[] der = new byte[][] { rsa.DER, new byte[10] }.SelectMany(i=>i).ToArray();
@@ -163,7 +157,7 @@ namespace scallion
 			ExpTwiddle(der,0x81);
 			ExpTwiddleOSSL(rsa,0x81);
 			ExpTwiddle(der,0xFADEAD);
-			ExpTwiddleOSSL(rsa,0xFADEAD);
+			ExpTwiddleOSSL(rsa,0xFADEAD);*/
 
 			/*{
 				rsa.Rsa.PublicExponent = 0x7F;
