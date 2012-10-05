@@ -11,7 +11,12 @@ namespace scallion
 		public RSAWrapper()
 		{
 			Rsa = new RSA();
+		}
 
+		public RSAWrapper(string keyfn)
+		{
+			using(BIO b = BIO.File(keyfn,"r"))
+				Rsa = RSA.FromPrivateKey(b);
 		}
 
 		/*static byte[] Der2Size(ulong size)
@@ -89,7 +94,7 @@ namespace scallion
 		public string OnionHash
 		{
 			get {
-				return tobase32str(this.get_der_hash());
+				return tobase32str(this.get_der_hash(),10);
 			}
 		}
 
@@ -133,11 +138,11 @@ namespace scallion
                 throw new Exception("Key not sane - openssl says so");
 		}
 
-		private static string tobase32str(byte[] src)
+		private static string tobase32str(byte[] src, int len)
 		{
 			const string BASE32_CHARS = "abcdefghijklmnopqrstuvwxyz234567";
 			int i, v, u, bit;
-			int nbits = src.Length * 8;
+			int nbits = len * 8;
 
 			StringBuilder sb = new StringBuilder();
 

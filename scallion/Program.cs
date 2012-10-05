@@ -143,8 +143,9 @@ namespace scallion
 			//var v = new CLDeviceInfo(CLDeviceInfo.GetDeviceIds()[0]);
 			//Console.WriteLine(v.MaxComputeUnits);
 
-			RSAWrapper rsa = new RSAWrapper();
-			rsa.GenerateKey(1024);
+			//RSAWrapper rsa = new RSAWrapper();
+			//rsa.GenerateKey(1024);
+			RSAWrapper rsa = new RSAWrapper("key.pem");
 
 			// Output the onion address
 			Console.WriteLine(rsa.OnionHash + ".onion");
