@@ -54,7 +54,7 @@ void change_exp_in_der_robust(char *der, unsigned long newexp)
         idx++;
         if((der[idx] & 0x80) == 0x80)
             idx += (der[idx] & 0x7F); // move to the length byte
-        der[idx]++;
+        der[idx] += bytes_needed - explen;
 
         // Now increase the exponent length
         // Same caveat as for seq length, although exp will never be that long
