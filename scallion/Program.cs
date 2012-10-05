@@ -147,6 +147,8 @@ namespace scallion
 			//rsa.GenerateKey(1024);
 			RSAWrapper rsa = new RSAWrapper("key.pem");
 
+			rsa.ChangePublicExponent(0x010003);
+
 			// Output the onion address
 			Console.WriteLine(rsa.OnionHash + ".onion");
 
@@ -159,13 +161,11 @@ namespace scallion
 			if(midlength < 0) midlength = 0;
 			byte[] der = (new byte[][] { eder, new byte[] {0x80}, new byte[midlength], Mono.DataConverter.Pack("^L",new object[] { eder.Length*8 }) }).SelectMany(i=>i).ToArray();
 
-			for (int j = 0; j < der.Length; j+=64) {
-				Console.Write ("uint W[80] = { ");
-				for (int i = j; i < j+64; i+=4) {
-					Console.Write("0x{0:x2}{1:x2}{2:x2}{3:x2}, ",der[i],der[i+1],der[i+2],der[i+3]);
-				}
-				Console.WriteLine ("};");
+			Console.Write ("uint8 der[{0}] = {{ ",der.Length);
+			for (int j = 0; j < der.Length; j+=1) {
+				Console.Write("0x{0:x2}, ",der[j]);
 			}
+			Console.WriteLine ("}};");
 
 			var sha1 = new System.Security.Cryptography.SHA1Managed();
 			Console.WriteLine(BitConverter.ToString(sha1.ComputeHash(eder)));
