@@ -29,6 +29,7 @@ void change_exp_in_der_robust(char *der, unsigned long newexp)
     int explen = 0;
     char *exp_ptr;
     char exp_bytes[8];
+    int idx = 0;
 
     // find number of bytes needed for exp
     while(newexp != 0) {
@@ -37,17 +38,32 @@ void change_exp_in_der_robust(char *der, unsigned long newexp)
         bytes_needed++;
     }
 
+    // if the top bit of the number is set, we need to prepend 0x00
+    if((exp_bytes[bytes_needed-1] & 0x80) == 0x80)
+        exp_bytes[++bytes_needed] = 0;
+
     // get a pointer to the exp data field
     find_exp_in_der(der,exp_ptr,&explen);
 
     // resize if needed
     if(explen < bytes_needed) {
-        // TODO: resize the field, keeping exp_ptr correct
+        // First increase the sequence length
+        // NOTE: this does NOT recalculate - it just increments the byte
+        // If the sequence is likely to be near 127 or n*256 bytes long, 
+        // this will need to be revised
+        idx++;
+        if((der[idx] & 0x80) == 0x80)
+            idx += (der[idx] & 0x7F); // move to the length byte
+        der[idx]++;
+
+        // Now increase the exponent length
+        // Same caveat as for seq length, although exp will never be that long
+        *(exp_ptr-1) = bytes_needed;
     }
 
-    // write the bytes into exp_ptr
-    // TODO: write this
-    // keep in mind: endianness, 0x00 needed if first bit == 1
+    // Write the exp bytes (big endian)
+    for(idx=0;idx<bytes_needed;idx++)
+        exp_ptr[bytes_needed-1-idx] = exp_bytes[idx];
 }
 
 // find the exponent field in the der
