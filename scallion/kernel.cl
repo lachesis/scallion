@@ -119,8 +119,6 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 		H[i] = Midstates[index*5+i];
 	exp_index = ExpIndexes[index];
 	
-	for(i=0;i<16;i++) Results[8+i] = W[i];
-	
 	// Load the exponent into the W
 	for(i=bytes_needed-1; i>=0; i--) {
         waddr = exp_index / 4;

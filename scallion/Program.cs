@@ -124,6 +124,8 @@ namespace scallion
 			kernel.SetKernelArg(6, bufPattern);
 			kernel.SetKernelArg(7, bufBitmask);
 
+			int loop = 0;
+
 			bool success = false;
 			while(!success)
 			{
@@ -177,7 +179,8 @@ namespace scallion
 
 				bufResults.EnqueueRead();
 
-				Console.WriteLine("Ran some");
+				loop++;
+				Console.WriteLine("Loop iteration {0}; Hash Count {1}",loop,1024*1024*loop);
 
 				foreach (var result in Results)
 				{
