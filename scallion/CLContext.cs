@@ -31,7 +31,18 @@ namespace scallion
 			programId = CL.CreateProgramWithSource(ContextId, 1, new string[] { source }, null, &error);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateProgramWithSource");
 			error = (ErrorCode)CL.BuildProgram(programId, 0, (IntPtr[])null, null, IntPtr.Zero, IntPtr.Zero);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling BuildProgram");
+			if (error != ErrorCode.Success)
+			{
+				uint parmSize;
+				CL.GetProgramBuildInfo(programId, DeviceId, ProgramBuildInfo.ProgramBuildLog, IntPtr.Zero, IntPtr.Zero, (IntPtr*)&parmSize);
+				byte[] value = new byte[parmSize];
+				fixed (byte* valuePtr = value)
+				{
+					error = (ErrorCode)CL.GetProgramBuildInfo(programId, DeviceId, ProgramBuildInfo.ProgramBuildLog, new IntPtr(&parmSize), new IntPtr(valuePtr), (IntPtr*)IntPtr.Zero.ToPointer());
+				}
+				if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling GetProgramBuildInfo");
+				throw new System.InvalidOperationException(Encoding.ASCII.GetString(value).Trim('\0'));
+			}
 			return programId;
 		}
 		public CLKernel CreateKernel(IntPtr programId, string kernelName)
