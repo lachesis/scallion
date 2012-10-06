@@ -32,9 +32,8 @@ namespace scallion
 			data = pad_data(data);
 
 			List<uint[]> ret = new List<uint[]>();
-			for (int i = 0; i < data.Length; i++) {
+			for (int chunk = 0; chunk < data.Length/64; chunk++) {
 				uint[] W = new uint[80];
-				int chunk = i / 64;
 				for (int k = 0; k < 16; k++) {
 					int j = chunk*64 + k*4;
 					W[k] = (uint)(data[j+0]<<24 | data[j+1]<<16 | data[j+2]<<8 | data[j+3]);
