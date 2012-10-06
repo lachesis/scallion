@@ -138,7 +138,7 @@ namespace scallion
                 throw new Exception("Key not sane - openssl says so");
 		}
 
-		private static string tobase32str(byte[] src, int len)
+		public static string tobase32str(byte[] src, int len)
 		{
 			const string BASE32_CHARS = "abcdefghijklmnopqrstuvwxyz234567";
 			int i, v, u, bit;

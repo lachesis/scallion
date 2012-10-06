@@ -70,6 +70,7 @@
     <Compile Include="DataConvert.cs" />
     <Compile Include="RSAWrapper.cs" />
     <Compile Include="SHA1.cs" />
+    <Compile Include="EricHacking.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">
