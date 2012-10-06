@@ -138,14 +138,85 @@ namespace scallion
 			Console.WriteLine();
 		}
 
+		/// <summary>
+		/// Returns the DER length of the specified value.
+		/// </summary>
+		/// <param name='val'>
+		/// Value.
+		/// </param>
+		static private int get_der_len(ulong val)
+		{
+			if(val == 0) return 1;
+			ulong tmp = val;
+			int len = 0;
+
+			// Find the length of the value
+			while(tmp != 0) {
+				tmp >>= 8;
+				len++;
+			}
+
+			// if the top bit of the number is set, we need to prepend 0x00
+			if(((val >> 8*(len-1)) & 0x80) == 0x80)
+				len++;
+
+			return len;
+		}
+
+
         static void Main(string[] args)
         {
+			RSAWrapper rsa = new RSAWrapper();
+			rsa.GenerateKey(1024); // Generate a key
+
+			const ulong EXP_MIN = 0x10001;
+			const ulong EXP_MAX = 0xFFFFFFFFFF;
+
+			int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
+			int cur_exp_num = 0; 
+			uint[] LastWs = new uint[num_exps*16];
+			uint[] Midstates = new uint[num_exps*5];
+			int[] ExpIndexes = new int[num_exps];
+
+			// Build DERs and calculate midstates for exponents of representitive lengths
+			for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++) {
+				ulong exp = (ulong)0x01 << (int)((i-1)*8);
+
+				// Set the exponent in the RSA key
+				// NO SANITY CHECK - just for building a DER
+				rsa.Rsa.PublicExponent = (BigNumber)exp; 
+
+				// Get the DER
+				byte[] der = rsa.DER;
+				int exp_index = der.Length % 64 - i;
+
+				// Put the DER into Ws
+				SHA1 Sha1 = new SHA1();
+				List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
+
+				// Put all but the last block through the hash
+				Ws.Take(Ws.Count-1).Select((t) => {
+					Sha1.SHA1_Block(t);
+					return t;
+				}).ToArray();
+
+				// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
+				Sha1.H.CopyTo(Midstates,5*cur_exp_num);
+				Ws.Last().Take(16).ToArray().CopyTo(LastWs,16*cur_exp_num);
+				ExpIndexes[cur_exp_num] = exp_index; 
+
+				// Increment the current exponent size
+				cur_exp_num++;
+			}
+
+			//rsa.DER;
+
 			//var v = new CLDeviceInfo(CLDeviceInfo.GetDeviceIds()[0]);
 			//Console.WriteLine(v.MaxComputeUnits);
 
 			//RSAWrapper rsa = new RSAWrapper();
 			//rsa.GenerateKey(1024);
-			RSAWrapper rsa = new RSAWrapper("key.pem");
+			RSAWrapper r2sa = new RSAWrapper("key.pem");
 
 			{
 				byte[] eder = rsa.DER;
