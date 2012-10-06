@@ -74,7 +74,7 @@ namespace scallion
 		public void EnqueueWrite()
 		{
 			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(0), 
+			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize), 
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueWriteBuffer");
 		}

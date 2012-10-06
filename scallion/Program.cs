@@ -101,15 +101,16 @@ namespace scallion
 			BigNumber[] Exps = new BigNumber[num_exps];
 
 			ulong[] Results = new ulong[1024*1024];
+
+
 			CLBuffer<uint> bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
 			CLBuffer<uint> bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
 			CLBuffer<int> bufExpIndexes = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, ExpIndexes);
 			CLBuffer<ulong> bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
 
 			//__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
-
-			uint[] Pattern = new uint[] { 0x5f8dae2a, 0x00000000, 0x00000000 };
-			uint[] Bitmask = new uint[] { 0xffffff00, 0x00000000, 0x00000000 };
+			uint[] Pattern = TorBase32.FromBase32Str("tron".PadRight(16,'a'));
+			uint[] Bitmask = TorBase32.CreateBase32Mask("xxxx".PadRight(16,'_'));
 			CLBuffer<uint> bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 			CLBuffer<uint> bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
 
@@ -125,8 +126,8 @@ namespace scallion
 			bool success = false;
 			while(!success)
 			{
-				RSAWrapper rsa = new RSAWrapper("key.pem");
-				//rsa.GenerateKey(1024); // Generate a key
+				//RSAWrapper rsa = new RSAWrapper("key.pem");
+				rsa.GenerateKey(1024); // Generate a key
 
 				Array.Clear(Results,0,Results.Length);
 
@@ -175,30 +176,12 @@ namespace scallion
 
 				bufResults.EnqueueRead();
 
-				rsa.ChangePublicExponent((BigNumber)Results[0]);
-
-				SHA1 my = new SHA1();
-				my.DataToPaddedBlocks(rsa.DER).Select(tttttt=>{my.SHA1_Block(tttttt); return 0;}).ToArray();
-				var q = my.H;
-
-				var s = new System.Security.Cryptography.SHA1Managed();
-				byte[] b = s.ComputeHash(rsa.DER);
-				string s2222 = BitConverter.ToString(b);
-
-				//"CAD8DAB1-AF44AC15-E3-F9-54-DE-DF-98-FD-32-76-20-E9-AD"
-
-				Console.WriteLine(LastWs);
-
-				Console.WriteLine(Results);
-
 				foreach (var result in Results)
 				{
 					if(result != 0)
 					{
 						rsa.ChangePublicExponent((BigNumber)result);
 						Console.WriteLine(rsa.OnionHash);
-						//Console.WriteLine(
-						//Console.WriteLine(rsa.DER
 						Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
 						success = true;
 					}
