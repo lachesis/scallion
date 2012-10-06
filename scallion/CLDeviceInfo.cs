@@ -14,7 +14,10 @@ namespace scallion
 			DeviceId = deviceId;
 			AddressBits = GetDeviceInfo_uint(DeviceInfo.DeviceAddressBits);
 		}
-		
+		public bool Is64Bit
+		{
+			get { return AddressBits == 64; }
+		}
 		public static IntPtr[] GetDeviceIds()
 		{
 			return GetPlatformIds()

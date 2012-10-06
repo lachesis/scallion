@@ -592,6 +592,7 @@ namespace OpenTK.Compute.CL10
         KernelWorkGroupSize = ((int)0x11B0),
         KernelCompileWorkGroupSize = ((int)0x11B1),
         KernelLocalMemSize = ((int)0x11B2),
+		KernelPreferredWorkGroupSizeMultiple = ((int)0x11B3)
     }
 
     public enum MapFlags : long
