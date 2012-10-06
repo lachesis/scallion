@@ -94,8 +94,6 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 	int waddr, baddr;
 	uint32 running_total;
 
-	for(i=0;i<16;i++) Results[8+i] = LastWs[i];
-
 	uint32 W[80];
 	uint32 H[5];
 
@@ -131,9 +129,7 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
         W[waddr] |= (uint32)(exp_bytes[i] << 8*baddr);
         exp_index++;
     }
-    
-    
-    
+      
     // Take the last part of the hash
 	sha1_block(W,H);
 	
@@ -142,16 +138,7 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 	for(i=0;i<3;i++)
 		running_total &= ~(H[i] ^ Pattern[i]) | ~Bitmask[i];
 	
-	Results[0] = exp;
-	Results[1] = running_total;
-	Results[2] = H[0];
-	Results[3] = H[1];
-	Results[4] = H[2];
-	Results[5] = H[3];
-	Results[6] = H[4];
-	Results[7] = index;
-	
 	// Did we win!?
-	//if((running_total&0xFFFFFFFF) == 0xFFFFFFFFu)
-	//	Results[get_global_id(0)] = exp;
+	if((running_total&0xFFFFFFFF) == 0xFFFFFFFFu)
+		Results[get_global_id(0)] = exp;
 }

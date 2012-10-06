@@ -58,6 +58,8 @@ namespace scallion
 		}
 		static void Main(string[] args)
 		{
+			var qqqq = TorBase32.FromBase32Str("jzwgy6ru2bx5pbdx");
+
 			Mode mode = Mode.Normal;
 			int deviceId = 0;
 			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
@@ -102,15 +104,14 @@ namespace scallion
 
 			ulong[] Results = new ulong[1024*1024];
 
-
 			CLBuffer<uint> bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
 			CLBuffer<uint> bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
 			CLBuffer<int> bufExpIndexes = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, ExpIndexes);
 			CLBuffer<ulong> bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
 
 			//__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
-			uint[] Pattern = TorBase32.FromBase32Str("tron".PadRight(16,'a'));
-			uint[] Bitmask = TorBase32.CreateBase32Mask("xxxx".PadRight(16,'_'));
+			uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str("tronro".PadRight(16,'a')));
+			uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask("xxxxxx".PadRight(16,'_')));
 			CLBuffer<uint> bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 			CLBuffer<uint> bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
 
@@ -126,7 +127,7 @@ namespace scallion
 			bool success = false;
 			while(!success)
 			{
-				//RSAWrapper rsa = new RSAWrapper("key.pem");
+				RSAWrapper rsa = new RSAWrapper();
 				rsa.GenerateKey(1024); // Generate a key
 
 				Array.Clear(Results,0,Results.Length);
@@ -171,19 +172,26 @@ namespace scallion
 				bufExpIndexes.EnqueueWrite();
 				bufResults.EnqueueWrite();
 
-				kernel.EnqueueNDRangeKernel(1,1); //1024*1024,128);
+				kernel.EnqueueNDRangeKernel(1024*1024,128); //1024*1024,128);
 	//			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
 
 				bufResults.EnqueueRead();
+
+				Console.WriteLine("Ran some");
 
 				foreach (var result in Results)
 				{
 					if(result != 0)
 					{
-						rsa.ChangePublicExponent((BigNumber)result);
-						Console.WriteLine(rsa.OnionHash);
-						Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
-						success = true;
+						try {
+							Console.WriteLine("Exp: {0}",result);
+							rsa.ChangePublicExponent((BigNumber)result);
+							Console.WriteLine(rsa.OnionHash);
+							Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
+							success = true;	
+						} catch (Exception ex) {
+							
+						}
 					}
 				}
 			}
