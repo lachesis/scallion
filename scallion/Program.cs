@@ -84,9 +84,7 @@ namespace scallion
 					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + "kernel.cl"
 				)
 			);
-			CLKernel kernel = context.CreateKernel(program, "kernel");
-
-
+			CLKernel kernel = context.CreateKernel(program, "shasearch");
 
 			RSAWrapper rsa = new RSAWrapper();
 			rsa.GenerateKey(1024); // Generate a key
@@ -136,7 +134,6 @@ namespace scallion
 				break;
 			}
 
-
 			uint[] Results = new uint[10];
 			CLBuffer<uint> bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
 			CLBuffer<uint> bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
@@ -153,12 +150,44 @@ namespace scallion
 			kernel.SetKernelArg(2, bufExpIndexes);
 			kernel.SetKernelArg(3, bufResults);
 			kernel.SetKernelArg(4, EXP_MIN);
-			kernel.SetKernelArg(5, get_der_len(EXP_MIN));
+			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
 
 			kernel.EnqueueNDRangeKernel(1,1);
 			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
 
 			bufResults.EnqueueRead();
+
+			rsa.ChangePublicExponent(Results[6]);
+
+			// Get the DER
+			byte[] der2 = rsa.DER;
+			
+			// Put the DER into Ws
+			SHA1 Sha12 = new SHA1();
+			List<uint[]> Ws2 = Sha12.DataToPaddedBlocks(der2);
+
+			// Put all the blocks through the hash
+			Ws2.Select((t) => {
+				Sha12.SHA1_Block(t);
+				return t;
+			}).ToArray();
+
+			Console.WriteLine(Sha12.H);
+
+			/*
+			SHA1 hash = new SHA1();
+			Array.Copy(Midstates,0,hash.H,0,5);
+			uint[] W = new uint[80];
+			LastWs.Take(16).ToArray().CopyTo(W,0);
+			hash.SHA1_Block(W);
+			byte[] hr = Mono.DataConverter.Pack("^IIIII",new object[] { hash.H[0], hash.H[1], hash.H[2], hash.H[3], hash.H[4] });
+			Console.WriteLine(RSAWrapper.tobase32str(hr,10));
+
+			rsa.Rsa.PublicExponent = Exps[0];
+			Console.WriteLine(rsa.OnionHash);
+*/
+
+
 
 			Console.WriteLine(Results);
 

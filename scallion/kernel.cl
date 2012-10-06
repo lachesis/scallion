@@ -81,11 +81,11 @@ void sha1_block(uint32 *W, uint32 *H)
         H[4] = (H[4] + E);
 }
 
-__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
+__kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
 	uint64 exp;
 	int bytes_needed = 0;
 	uint8 index;
-	uint8 exp_bytes;
+	uint8 exp_bytes[8];
 	uint64 newexp;
 	uint32 exp_index;
 	int i;
@@ -94,7 +94,7 @@ __kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const 
 	uint32 W[80];
 	uint32 H[5];
 
-	exp = get_global_id(0) * 2 + base_exp;
+	exp = get_global_id(0) * 2 + base_exp + 4;
 	newexp = exp;
 
 	// find number of bytes needed for exp
@@ -109,24 +109,26 @@ __kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const 
         exp_bytes[bytes_needed++] = 0;
 
 	// Load data into Private Crap
-	index = exp_bytes - len_start;
+	index = bytes_needed - len_start;
 	for(i=0; i<16; i++)
 		W[i] = LastWs[index*16+i];
 	for(i=0; i<5; i++)
 		H[i] = Midstates[index*5+i];
-	exp_index = ExpIndexes[index]
+	exp_index = ExpIndexes[index];
 	
 	// Load the exponent into the place where they live
 	for(i=bytes_needed-1; i>=0; i--) {
-        waddr = exp_addr / 4;
-        baddr = 3 - exp_addr % 4;
+        waddr = exp_index / 4;
+        baddr = 3 - exp_index % 4;
         W[waddr] &= ~((uint32)((uint32)0x000000FF << 8*baddr));
         W[waddr] |= (uint32)(exp_bytes[i] << 8*baddr);
-        exp_addr++;
+        exp_index++;
     }
     
     // Take the last part of the hash
 	sha1_block(W,H);
+	
+	// Here, do the compare and report the results
 	
 	Results[0] = H[0];
 	Results[1] = H[1];
