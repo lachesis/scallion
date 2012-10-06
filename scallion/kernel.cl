@@ -1,3 +1,10 @@
+#define uint8 char
+#define int8 char
+#define uint32 uint
+#define int32 int
+#define uint64 ulong
+#define int64 long
+
 uint rotateLeft(uint32 x, int32 n)
 {
     return  (x << n) | (x >> (32-n));
