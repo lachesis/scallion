@@ -18,8 +18,9 @@ namespace scallion
 			DeviceId = deviceId;
 			Device = new CLDeviceInfo(DeviceId);
 			ErrorCode error;
-			ContextId = CL.CreateContext((ContextProperties*)null, 1, (IntPtr*)DeviceId.ToPointer(), IntPtr.Zero, IntPtr.Zero, &error);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateContext");
+			ErrorCode[] errors = new ErrorCode[1];
+			ContextId = CL.CreateContext(null, 1, new IntPtr[] { DeviceId }, IntPtr.Zero, IntPtr.Zero, errors);
+			if (errors[0] != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateContext");
 			CommandQueueId = CL.CreateCommandQueue(ContextId, DeviceId, (CommandQueueFlags)0, &error);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateCommandQueue");
 		}
@@ -48,30 +49,36 @@ namespace scallion
 		public readonly IntPtr BufferId;
 		public readonly IntPtr CommandQueueId;
 		public readonly bool IsDevice64Bit;
-		public readonly ulong BufferSize;
+		public readonly int BufferSize;
 		public CLBuffer(bool isDevice64Bit, IntPtr contextId, IntPtr commandQueueId, MemFlags memFlags, T[] data)
 		{
 			IsDevice64Bit = isDevice64Bit;
 			CommandQueueId = commandQueueId;
-			Handle = GCHandle.Alloc(data);
+			Handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 			ErrorCode error = ErrorCode.Success;
-			BufferSize = (ulong)Marshal.SizeOf(typeof(T)) * (ulong)data.Length;
-			BufferId = CL.CreateBuffer(contextId, memFlags, new SizeT(BufferSize, IsDevice64Bit), Handle.AddrOfPinnedObject(), &error);
+			BufferSize = Marshal.SizeOf(typeof(T)) * data.Length;
+			BufferId = CL.CreateBuffer(contextId, memFlags, new IntPtr(BufferSize), Handle.AddrOfPinnedObject(), &error);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateBuffer");
 		}
 
 		public void EnqueueWrite()
 		{
 			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new SizeT(0, IsDevice64Bit), new SizeT(0, IsDevice64Bit), 
+			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(0), 
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueWriteBuffer");
 		}
 
 		public void EnqueueRead()
 		{
+			/*
+			error = (ErrorCode)CL.EnqueueReadBuffer(hCmdQueue, hDeviceMemC, true, IntPtr.Zero,
+	  new IntPtr(cnDimension.ToInt32() * sizeof(float)),
+	  new IntPtr(pC), 0, null, (IntPtr[])null);
+			*/
+
 			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, true, new SizeT(0, IsDevice64Bit), new SizeT(0, IsDevice64Bit),
+			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize),
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueReadBuffer");
 		}
@@ -140,7 +147,7 @@ namespace scallion
 		public void SetKernelArg<T>(int argIndex, T value) where T : struct
 		{
 			ErrorCode error;
-			var handle = GCHandle.Alloc(value);
+			var handle = GCHandle.Alloc(value, GCHandleType.Pinned);
 			ulong size = (ulong)Marshal.SizeOf(typeof(T));
 			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new SizeT(size, Is64BitDevice), handle.AddrOfPinnedObject());
 			handle.Free();
@@ -149,7 +156,8 @@ namespace scallion
 		public void SetKernelArg<T>(int argIndex, CLBuffer<T> value) where T : struct
 		{
 			ErrorCode error;
-			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new SizeT((ulong)sizeof(IntPtr), Is64BitDevice), value.BufferId);
+			IntPtr bufferId = value.BufferId;
+			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(sizeof(IntPtr)), new IntPtr(&bufferId));
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
 		}
 		public ulong KernelPreferredWorkGroupSizeMultiple

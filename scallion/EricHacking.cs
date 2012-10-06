@@ -158,7 +158,7 @@ namespace scallion
 			return len;
 		}
 
-		public static void Main()
+		public static void EMain()
 		{
 			RSAWrapper rsa = new RSAWrapper();
 			rsa.GenerateKey(1024); // Generate a key
