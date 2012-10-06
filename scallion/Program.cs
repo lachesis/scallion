@@ -18,19 +18,51 @@ namespace scallion
 			Help,
 			ListDevices
 		}
+		public static List<CLDeviceInfo> GetDevices()
+		{
+			return CLDeviceInfo.GetDeviceIds()
+				.Select(i => new CLDeviceInfo(i))
+				.Where(i => i.CompilerAvailable)
+				.ToList();
+		}
+		public static void ListDevices()
+		{
+			int deviceId = 0;
+			foreach (CLDeviceInfo device in GetDevices())
+			{
+				if (!device.CompilerAvailable) continue;
+				Console.WriteLine("Id:{0} Name:{1}", deviceId, device.Name.Trim());
+				deviceId++;
+			}
+		}
+		public static void Help()
+		{
+		}
 		static void Main(string[] args)
 		{
 			Mode mode = Mode.Normal;
-			Func<Mode, Action<string>> parseMode = (m)=>(s)=>{if(!string.IsNullOrEmpty(s)){mode = m;}};
+			int deviceId = 0;
+			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
 			OptionSet p = new OptionSet()
-			    .Add("h|?|help", parseMode(Mode.Help))
-			    .Add("ld|ldevices", parseMode(Mode.ListDevices));
+				.Add("h|?|help", parseMode(Mode.Help))
+				.Add("ld|ldevice", parseMode(Mode.ListDevices))
+				.Add("d|device", (i) => { if (!string.IsNullOrEmpty(i)) { deviceId = int.Parse(i); } });
 			List<string> extra = p.Parse(args);
 
-			IntPtr devid = CLDeviceInfo.GetDeviceIds()[0];
-			CLContext context = new CLContext(devid);
+			switch (mode)
+			{
+				case Mode.Help:
+					Help();
+					break;
+				case Mode.ListDevices:
+					ListDevices();
+					break;
+			}
+			
+			CLDeviceInfo device = GetDevices()[deviceId];
+			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(@"
-__kernel void hello(__global char* message){
+__kernel void hello(__global char* message, int j){
 message[0] = 'H';
 message[1] = 'e';
 message[2] = 'l';
@@ -47,15 +79,17 @@ message[12] = '!';
 message[13] = '\0';
 }
 ");
-			CLKernel kernel = context.CreateKernel(program,"hello");
+			CLKernel kernel = context.CreateKernel(program, "hello");
 
 			byte[] message = new byte[14];
-			CLBuffer<byte> buf = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr,message);
+			CLBuffer<byte> buf = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, message);
 
 			buf.EnqueueWrite();
-			kernel.SetKernelArg(0,buf);
+			kernel.SetKernelArg(0, buf);
+			kernel.SetKernelArg(1, 1);
 
-			kernel.EnqueueNDRangeKernel();
+			kernel.EnqueueNDRangeKernel(1024 * 1024, 128);
+			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
 
 			buf.EnqueueRead();
 
