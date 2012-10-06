@@ -36,11 +36,11 @@ namespace scallion
 		}
 		public CLKernel CreateKernel(IntPtr programId, string kernelName)
 		{
-			return new CLKernel(DeviceId, Device.Is64Bit, ContextId, CommandQueueId, programId, kernelName);
+			return new CLKernel(DeviceId, ContextId, CommandQueueId, programId, kernelName);
 		}
 		public CLBuffer<T> CreateBuffer<T>(MemFlags memFlags, T[] data) where T : struct
 		{
-			return new CLBuffer<T>(Device.Is64Bit, ContextId, CommandQueueId, memFlags, data);
+			return new CLBuffer<T>(ContextId, CommandQueueId, memFlags, data);
 		}
 	}
 	public unsafe class CLBuffer<T> : IDisposable where T : struct
@@ -50,9 +50,8 @@ namespace scallion
 		public readonly IntPtr CommandQueueId;
 		public readonly bool IsDevice64Bit;
 		public readonly int BufferSize;
-		public CLBuffer(bool isDevice64Bit, IntPtr contextId, IntPtr commandQueueId, MemFlags memFlags, T[] data)
+		public CLBuffer(IntPtr contextId, IntPtr commandQueueId, MemFlags memFlags, T[] data)
 		{
-			IsDevice64Bit = isDevice64Bit;
 			CommandQueueId = commandQueueId;
 			Handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 			ErrorCode error = ErrorCode.Success;
@@ -71,12 +70,6 @@ namespace scallion
 
 		public void EnqueueRead()
 		{
-			/*
-			error = (ErrorCode)CL.EnqueueReadBuffer(hCmdQueue, hDeviceMemC, true, IntPtr.Zero,
-	  new IntPtr(cnDimension.ToInt32() * sizeof(float)),
-	  new IntPtr(pC), 0, null, (IntPtr[])null);
-			*/
-
 			ErrorCode error;
 			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize),
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
@@ -111,12 +104,10 @@ namespace scallion
 		public readonly IntPtr CommandQueueId;
 		public readonly IntPtr ProgramId;
 		public readonly string KernelName;
-		public readonly bool Is64BitDevice;
 		public readonly IntPtr DeviceId;
-		public CLKernel(IntPtr deviceId, bool is64BitDevice, IntPtr contextId, IntPtr commandQueueId, IntPtr programId, string kernelName)
+		public CLKernel(IntPtr deviceId, IntPtr contextId, IntPtr commandQueueId, IntPtr programId, string kernelName)
 		{
 			DeviceId = deviceId;
-			Is64BitDevice = is64BitDevice;
 			ContextId = contextId;
 			CommandQueueId = commandQueueId;
 			ProgramId = programId;
@@ -125,31 +116,27 @@ namespace scallion
 			ErrorCode error;
 			KernelId = CL.CreateKernel(ProgramId, KernelName, out error);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateKernel");
-
-			//error = (ErrorCode)CL.EnqueueNDRangeKernel(hCmdQueue, hKernel, 1, null, &cnDimension, null, 0, null, null);
-			//if (error != ErrorCode.Success)
-			//    throw new Exception(error.ToString());
 		}
-		public void EnqueueNDRangeKernel()
+		public void EnqueueNDRangeKernel(int globalWorkSize, int localWorkSize)
 		{
 			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueNDRangeKernel(CommandQueueId, KernelId, 1, null,
-				(IntPtr*)((IntPtr)new SizeT(1024*1024, Is64BitDevice)).ToPointer(),
-				(IntPtr*)((IntPtr)new SizeT(128, Is64BitDevice)).ToPointer(), 0, null, null);
+			IntPtr pglobalWorkSize = new IntPtr(globalWorkSize);
+			IntPtr plocalWorkSize = new IntPtr(localWorkSize);
+			error = (ErrorCode)CL.EnqueueNDRangeKernel(CommandQueueId, KernelId, 1, null, &pglobalWorkSize, &plocalWorkSize, 0, null, null);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueNDRangeKernel");
 		}
-		public void SetKernelArgLocal(int argIndex, ulong size)
+		public void SetKernelArgLocal(int argIndex, int size)
 		{
 			ErrorCode error;
-			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new SizeT(size, Is64BitDevice), IntPtr.Zero);
+			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(size), IntPtr.Zero);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
 		}
 		public void SetKernelArg<T>(int argIndex, T value) where T : struct
 		{
 			ErrorCode error;
 			var handle = GCHandle.Alloc(value, GCHandleType.Pinned);
-			ulong size = (ulong)Marshal.SizeOf(typeof(T));
-			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new SizeT(size, Is64BitDevice), handle.AddrOfPinnedObject());
+			int size = Marshal.SizeOf(typeof(T));
+			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(size), handle.AddrOfPinnedObject());
 			handle.Free();
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
 		}
@@ -165,38 +152,11 @@ namespace scallion
 			get
 			{
 				ErrorCode error;
-				SizeT ret = new SizeT(0, Is64BitDevice);
-				error = (ErrorCode)CL.GetKernelWorkGroupInfo(KernelId, DeviceId, KernelWorkGroupInfo.KernelPreferredWorkGroupSizeMultiple, new SizeT(ret.Size, Is64BitDevice), ret, (IntPtr*)IntPtr.Zero.ToPointer());
+				ulong ret = 0;
+				error = (ErrorCode)CL.GetKernelWorkGroupInfo(KernelId, DeviceId, KernelWorkGroupInfo.KernelPreferredWorkGroupSizeMultiple, new IntPtr(sizeof(IntPtr)), ref ret, (IntPtr*)IntPtr.Zero.ToPointer());
 				if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling GetKernelWorkGroupInfo");
-				return ret.Value;
+				return ret;
 			}
-		}
-	}
-	public unsafe struct SizeT
-	{
-		public SizeT(ulong value, bool is64Bit)
-		{
-			_valueULong = value;
-			_valueUInt = unchecked((uint)value);
-			_is64Bit = is64Bit;
-		}
-		public ulong Value { get { return _valueULong; } }
-		public bool Is64Bit { get { return _is64Bit; } }
-		private ulong _valueULong;
-		private uint _valueUInt;
-		private bool _is64Bit;
-		public ulong Size
-		{
-			get { return _is64Bit ? (ulong)8 : (ulong)4; }
-		}
-		public static implicit operator ulong(SizeT sizeT)
-		{
-			return sizeT._valueULong;
-		}
-		public static implicit operator IntPtr(SizeT sizeT)
-		{
-			if (sizeT._is64Bit) return new IntPtr(&sizeT._valueULong);
-			else return new IntPtr(&sizeT._valueUInt);
 		}
 	}
 }
