@@ -74,7 +74,7 @@ void sha1_block(uint32 *W, uint32 *H)
         H[4] = (H[4] + E);
 }
 
-__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint64* Results, uint64 base_exp, uint8 len_start){
+__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
 	uint64 exp;
 	int bytes_needed = 0;
 	uint8 index;
