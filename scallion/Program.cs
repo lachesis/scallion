@@ -76,7 +76,10 @@ namespace scallion
 					ListDevices();
 					break;
 			}
-			
+
+			//string x = RSAWrapper.tobase32str(new byte[] { 0x9c, 0x5c, 0xde, 0x73, 0x9c, 0xe7, 0x39, 0xce, 0x73, 0x9c },10);
+			//Console.WriteLine(x);
+
 			CLDeviceInfo device = GetDevices()[deviceId];
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
@@ -85,10 +88,7 @@ namespace scallion
 				)
 			);
 			CLKernel kernel = context.CreateKernel(program, "shasearch");
-
-			RSAWrapper rsa = new RSAWrapper();
-			rsa.GenerateKey(1024); // Generate a key
-
+			
 			const ulong EXP_MIN = 0x10001;
 			const ulong EXP_MAX = 0xFFFFFFFFFF;
 
@@ -100,105 +100,110 @@ namespace scallion
 
 			BigNumber[] Exps = new BigNumber[num_exps];
 
-			// Build DERs and calculate midstates for exponents of representitive lengths
-			for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++) {
-				ulong exp = (ulong)0x01 << (int)((i-1)*8);
-
-				// Set the exponent in the RSA key
-				// NO SANITY CHECK - just for building a DER
-				rsa.Rsa.PublicExponent = (BigNumber)exp;
-				Exps[cur_exp_num] = (BigNumber)exp;
-
-				// Get the DER
-				byte[] der = rsa.DER;
-				int exp_index = der.Length % 64 - i;
-
-				// Put the DER into Ws
-				SHA1 Sha1 = new SHA1();
-				List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
-
-				// Put all but the last block through the hash
-				Ws.Take(Ws.Count-1).Select((t) => {
-					Sha1.SHA1_Block(t);
-					return t;
-				}).ToArray();
-
-				// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
-				Sha1.H.CopyTo(Midstates,5*cur_exp_num);
-				Ws.Last().Take(16).ToArray().CopyTo(LastWs,16*cur_exp_num);
-				ExpIndexes[cur_exp_num] = exp_index; 
-
-				// Increment the current exponent size
-				cur_exp_num++;
-
-				break;
-			}
-
-			uint[] Results = new uint[10];
+			ulong[] Results = new ulong[1024*1024];
 			CLBuffer<uint> bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
 			CLBuffer<uint> bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
 			CLBuffer<int> bufExpIndexes = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, ExpIndexes);
-			CLBuffer<uint> bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemWriteOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
+			CLBuffer<ulong> bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
 
 			//__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
 
-			bufLastWs.EnqueueWrite();
-			bufMidstates.EnqueueWrite();
-			bufExpIndexes.EnqueueWrite();
+			uint[] Pattern = new uint[] { 0x5f8dae2a, 0x00000000, 0x00000000 };
+			uint[] Bitmask = new uint[] { 0xffffff00, 0x00000000, 0x00000000 };
+			CLBuffer<uint> bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
+			CLBuffer<uint> bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
+
 			kernel.SetKernelArg(0, bufLastWs);
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufExpIndexes);
 			kernel.SetKernelArg(3, bufResults);
 			kernel.SetKernelArg(4, EXP_MIN);
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
+			kernel.SetKernelArg(6, bufPattern);
+			kernel.SetKernelArg(7, bufBitmask);
 
-			kernel.EnqueueNDRangeKernel(1,1);
-			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
+			bool success = false;
+			while(!success)
+			{
+				RSAWrapper rsa = new RSAWrapper("key.pem");
+				//rsa.GenerateKey(1024); // Generate a key
 
-			bufResults.EnqueueRead();
+				Array.Clear(Results,0,Results.Length);
 
-			rsa.ChangePublicExponent(Results[6]);
+				// Build DERs and calculate midstates for exponents of representitive lengths
+				cur_exp_num = 0;
+				for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++) {
+					ulong exp = (ulong)0x01 << (int)((i-1)*8);
 
-			// Get the DER
-			byte[] der2 = rsa.DER;
-			
-			// Put the DER into Ws
-			SHA1 Sha12 = new SHA1();
-			List<uint[]> Ws2 = Sha12.DataToPaddedBlocks(der2);
+					// Set the exponent in the RSA key
+					// NO SANITY CHECK - just for building a DER
+					rsa.Rsa.PublicExponent = (BigNumber)exp;
+					Exps[cur_exp_num] = (BigNumber)exp;
 
-			// Put all the blocks through the hash
-			Ws2.Select((t) => {
-				Sha12.SHA1_Block(t);
-				return t;
-			}).ToArray();
+					// Get the DER
+					byte[] der = rsa.DER;
+					int exp_index = der.Length % 64 - i;
 
-			Console.WriteLine(Sha12.H);
+					// Put the DER into Ws
+					SHA1 Sha1 = new SHA1();
+					List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
 
-			/*
-			SHA1 hash = new SHA1();
-			Array.Copy(Midstates,0,hash.H,0,5);
-			uint[] W = new uint[80];
-			LastWs.Take(16).ToArray().CopyTo(W,0);
-			hash.SHA1_Block(W);
-			byte[] hr = Mono.DataConverter.Pack("^IIIII",new object[] { hash.H[0], hash.H[1], hash.H[2], hash.H[3], hash.H[4] });
-			Console.WriteLine(RSAWrapper.tobase32str(hr,10));
+					// Put all but the last block through the hash
+					Ws.Take(Ws.Count-1).Select((t) => {
+						Sha1.SHA1_Block(t);
+						return t;
+					}).ToArray();
 
-			rsa.Rsa.PublicExponent = Exps[0];
-			Console.WriteLine(rsa.OnionHash);
-*/
+					// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
+					Sha1.H.CopyTo(Midstates,5*cur_exp_num);
+					Ws.Last().Take(16).ToArray().CopyTo(LastWs,16*cur_exp_num);
+					ExpIndexes[cur_exp_num] = exp_index; 
 
+					// Increment the current exponent size
+					cur_exp_num++;
 
+					break;
+				}
 
-			Console.WriteLine(Results);
+				bufLastWs.EnqueueWrite();
+				bufMidstates.EnqueueWrite();
+				bufExpIndexes.EnqueueWrite();
+				bufResults.EnqueueWrite();
 
-			//// Kernel steps
-			//// 1. Copy global DER into local space (leave extra bytes)
-			//// 2. Increase exponent (using stride) in loop
-			//// 3. Hash with SHA1
-			//// 4. Get the Onion encoding of this hash
-			//// 5. Compare to pattern, if win, quit
-			//// Be able to update the exponent size
-			//// Watch out for endianness of exponent
+				kernel.EnqueueNDRangeKernel(1,1); //1024*1024,128);
+	//			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
+
+				bufResults.EnqueueRead();
+
+				rsa.ChangePublicExponent((BigNumber)Results[0]);
+
+				SHA1 my = new SHA1();
+				my.DataToPaddedBlocks(rsa.DER).Select(tttttt=>{my.SHA1_Block(tttttt); return 0;}).ToArray();
+				var q = my.H;
+
+				var s = new System.Security.Cryptography.SHA1Managed();
+				byte[] b = s.ComputeHash(rsa.DER);
+				string s2222 = BitConverter.ToString(b);
+
+				//"CAD8DAB1-AF44AC15-E3-F9-54-DE-DF-98-FD-32-76-20-E9-AD"
+
+				Console.WriteLine(LastWs);
+
+				Console.WriteLine(Results);
+
+				foreach (var result in Results)
+				{
+					if(result != 0)
+					{
+						rsa.ChangePublicExponent((BigNumber)result);
+						Console.WriteLine(rsa.OnionHash);
+						//Console.WriteLine(
+						//Console.WriteLine(rsa.DER
+						Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
+						success = true;
+					}
+				}
+			}
 		}
 	}
 }

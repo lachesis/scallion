@@ -81,7 +81,9 @@ void sha1_block(uint32 *W, uint32 *H)
         H[4] = (H[4] + E);
 }
 
-__kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
+__kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint64* Results, uint64 base_exp, uint8 len_start,
+						__constant uint32* Pattern, __constant uint32* Bitmask)
+{
 	uint64 exp;
 	int bytes_needed = 0;
 	uint8 index;
@@ -90,25 +92,28 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 	uint32 exp_index;
 	int i;
 	int waddr, baddr;
+	uint32 running_total;
+
+	for(i=0;i<16;i++) Results[8+i] = LastWs[i];
 
 	uint32 W[80];
 	uint32 H[5];
 
-	exp = get_global_id(0) * 2 + base_exp + 4;
+	exp = get_global_id(0) * 2 + base_exp;
 	newexp = exp;
 
 	// find number of bytes needed for exp
     while(newexp != 0) {
-        exp_bytes[bytes_needed] = newexp & 0xFF;
+        exp_bytes[bytes_needed] = newexp & (char)0xFF;
         newexp >>= 8;
         bytes_needed++;
     }
     
     // if the top bit of the number is set, we need to prepend 0x00
-    if((exp_bytes[bytes_needed-1] & 0x80) == 0x80)
+    if((exp_bytes[bytes_needed-1] & (char)0x80) == (char)0x80)
         exp_bytes[bytes_needed++] = 0;
 
-	// Load data into Private Crap
+	// Load Ws and Midstates into private variables
 	index = bytes_needed - len_start;
 	for(i=0; i<16; i++)
 		W[i] = LastWs[index*16+i];
@@ -116,25 +121,37 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 		H[i] = Midstates[index*5+i];
 	exp_index = ExpIndexes[index];
 	
-	// Load the exponent into the place where they live
+	for(i=0;i<16;i++) Results[8+i] = W[i];
+	
+	// Load the exponent into the W
 	for(i=bytes_needed-1; i>=0; i--) {
         waddr = exp_index / 4;
         baddr = 3 - exp_index % 4;
-        W[waddr] &= ~((uint32)((uint32)0x000000FF << 8*baddr));
+        W[waddr] &= ~((uint32)((uint32)0x000000FFu << 8*baddr));
         W[waddr] |= (uint32)(exp_bytes[i] << 8*baddr);
         exp_index++;
     }
     
+    
+    
     // Take the last part of the hash
 	sha1_block(W,H);
 	
-	// Here, do the compare and report the results
+	// Compare the first 3 bits of the hash with the pattern
+	running_total = 0xFFFFFFFFu;
+	for(i=0;i<3;i++)
+		running_total &= ~(H[i] ^ Pattern[i]) | ~Bitmask[i];
 	
-	Results[0] = H[0];
-	Results[1] = H[1];
-	Results[2] = H[2];
-	Results[3] = H[3];
-	Results[4] = H[4];
+	Results[0] = exp;
+	Results[1] = running_total;
+	Results[2] = H[0];
+	Results[3] = H[1];
+	Results[4] = H[2];
+	Results[5] = H[3];
+	Results[6] = H[4];
+	Results[7] = index;
 	
-	Results[6] = exp;
+	// Did we win!?
+	//if((running_total&0xFFFFFFFF) == 0xFFFFFFFFu)
+	//	Results[get_global_id(0)] = exp;
 }
