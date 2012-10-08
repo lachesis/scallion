@@ -74,6 +74,8 @@
     <Compile Include="SHA1.cs" />
     <Compile Include="EricHacking.cs" />
     <Compile Include="TorBase32.cs" />
+    <Compile Include="Timing.cs" />
+    <Compile Include="CLRuntime.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">
