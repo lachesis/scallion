@@ -124,7 +124,7 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
         waddr = exp_index / 4;
         baddr = 3 - exp_index % 4;
         W[waddr] &= ~((uint32)((uint32)0x000000FFu << 8*baddr));
-        W[waddr] |= (uint32)(exp_bytes[i] << 8*baddr);
+        W[waddr] |= (((uint32)exp_bytes[i] & 0xFF) << 8*baddr);
         exp_index++;
     }
       

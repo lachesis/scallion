@@ -49,8 +49,8 @@ namespace scallion
 			);
 			CLKernel kernel = context.CreateKernel(program, "shasearch");
 			
-			const ulong EXP_MIN = 0x10001;
-			const ulong EXP_MAX = 0xFFFFFFFFFF;
+			const ulong EXP_MIN = 0x01010001;
+			const ulong EXP_MAX = 0x7FFFFFFF;
 
 			int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
 			int cur_exp_num = 0; 
