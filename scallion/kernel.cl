@@ -81,7 +81,7 @@ void sha1_block(uint32 *W, uint32 *H)
         H[4] = (H[4] + E);
 }
 
-__kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint64* Results, uint64 base_exp, uint8 len_start,
+__kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start,
 						__constant uint32* Pattern, __constant uint32* Bitmask)
 {
 	uint64 exp;
@@ -138,5 +138,5 @@ __kernel void shasearch(__constant uint32* LastWs, __constant uint32* Midstates,
 	
 	// Did we win!?
 	if((running_total&0xFFFFFFFF) == 0xFFFFFFFFu)
-		Results[get_global_id(0)] = exp;
+		Results[get_global_id(0) % 128] = (uint32)exp;
 }
