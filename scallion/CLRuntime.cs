@@ -70,7 +70,9 @@ namespace scallion
 			CLBuffer<uint> bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 			CLBuffer<uint> bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
 
-			kernel.SetKernelArg(0, bufLastWs);
+			lock(new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
+
+			kernel.SetKernelArg(0, bufLastWs);			
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufExpIndexes);
 			kernel.SetKernelArg(3, bufResults);
@@ -78,7 +80,7 @@ namespace scallion
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
 			kernel.SetKernelArg(6, bufPattern);
 			kernel.SetKernelArg(7, bufBitmask);
-
+		
 			int loop = 0;
 
 			bool success = false;
@@ -128,6 +130,8 @@ namespace scallion
 				bufMidstates.EnqueueWrite();
 				bufExpIndexes.EnqueueWrite();
 				bufResults.EnqueueWrite();
+
+				System.Threading.Thread.Sleep(1000);
 
 				kernel.EnqueueNDRangeKernel(1024*1024*16,128); //1024*1024,128);
 	//			ulong j = kernel.KernelPreferredWorkGroupSizeMultiple;
