@@ -54,7 +54,8 @@ namespace scallion
 					break;
 			}
 
-			CLRuntime.Run(deviceId);
+			CLRuntime runtime = new CLRuntime();
+			runtime.Run(deviceId, 128, 1024 * 1024 * 16);
 		}
 	}
 }

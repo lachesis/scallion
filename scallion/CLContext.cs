@@ -56,17 +56,31 @@ namespace scallion
 	}
 	public unsafe class CLBuffer<T> : IDisposable where T : struct
 	{
-		public readonly GCHandle Handle;
+		public GCHandle Handle { get; private set; }
 		public readonly IntPtr BufferId;
 		public readonly IntPtr CommandQueueId;
 		public readonly bool IsDevice64Bit;
 		public readonly int BufferSize;
+		private T[] _data;
+		public T[] Data
+		{
+			get { return _data;}
+			set
+			{
+				if (_data == value) return;
+				if (Handle.IsAllocated) Handle.Free();
+				_data = value;
+				Handle = GCHandle.Alloc(_data, GCHandleType.Pinned);
+				if (BufferSize != Marshal.SizeOf(typeof(T)) * _data.Length) throw new System.Exception("Data's length is not the same as the original buffer.");
+			}
+		}
+
 		public CLBuffer(IntPtr contextId, IntPtr commandQueueId, MemFlags memFlags, T[] data)
 		{
 			CommandQueueId = commandQueueId;
-			Handle = GCHandle.Alloc(data, GCHandleType.Pinned);
 			ErrorCode error = ErrorCode.Success;
 			BufferSize = Marshal.SizeOf(typeof(T)) * data.Length;
+			Data = data;
 			BufferId = CL.CreateBuffer(contextId, memFlags, new IntPtr(BufferSize), Handle.AddrOfPinnedObject(), &error);
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateBuffer");
 		}

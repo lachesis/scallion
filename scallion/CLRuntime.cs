@@ -3,10 +3,11 @@ using System.Linq;
 using System.Collections.Generic;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
+using System.Threading;
 
 namespace scallion
 {
-	public static class CLRuntime
+	public class CLRuntime
 	{
 		public static List<CLDeviceInfo> GetDevices()
 		{
@@ -34,12 +35,94 @@ namespace scallion
 
 			return len;
 		}
-
-		public static void Run(int deviceId)
+		
+		public class KernelInput
 		{
-			Profiler profiler = new Profiler();
+			public KernelInput(int num_exps)
+			{
+				Rsa = new RSAWrapper();
+				LastWs = new uint[num_exps * 16];
+				Midstates = new uint[num_exps * 5];
+				ExpIndexes = new int[num_exps];
+				Results = new uint[128];
+			}
+			public readonly uint[] LastWs;
+			public readonly uint[] Midstates;
+			public readonly int[] ExpIndexes;
+			public readonly RSAWrapper Rsa;
+			public readonly uint[] Results;
+		}
+		const ulong EXP_MIN = 0x01010001;
+		const ulong EXP_MAX = 0x7FFFFFFF;
+		private Queue<KernelInput> _kernelInput = new Queue<KernelInput>();
+		private void CreateInput()
+		{
+			while (true)
+			{
+				bool inputQueueIsLow = false;
+				lock (_kernelInput)	{ inputQueueIsLow = _kernelInput.Count < 30; }
+				if (inputQueueIsLow)
+				{
+					int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
+					KernelInput input = new KernelInput(num_exps);
 
+					profiler.StartRegion("generate key");
+					input.Rsa.GenerateKey(1024); // Generate a key
+					profiler.EndRegion("generate key");
+
+					// Build DERs and calculate midstates for exponents of representitive lengths
+					profiler.StartRegion("cpu precompute");
+					int cur_exp_num = 0;
+					BigNumber[] Exps = new BigNumber[num_exps];
+					for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++)
+					{
+						ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
+
+						// Set the exponent in the RSA key
+						// NO SANITY CHECK - just for building a DER
+						input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
+						Exps[cur_exp_num] = (BigNumber)exp;
+
+						// Get the DER
+						byte[] der = input.Rsa.DER;
+						int exp_index = der.Length % 64 - i;
+
+						// Put the DER into Ws
+						SHA1 Sha1 = new SHA1();
+						List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
+
+						// Put all but the last block through the hash
+						Ws.Take(Ws.Count - 1).Select((t) =>
+						{
+							Sha1.SHA1_Block(t);
+							return t;
+						}).ToArray();
+
+						// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
+						Sha1.H.CopyTo(input.Midstates, 5 * cur_exp_num);
+						Ws.Last().Take(16).ToArray().CopyTo(input.LastWs, 16 * cur_exp_num);
+						input.ExpIndexes[cur_exp_num] = exp_index;
+
+						// Increment the current exponent size
+						cur_exp_num++;
+						break;
+					}
+					profiler.EndRegion("cpu precompute");
+					lock (_kernelInput) { _kernelInput.Enqueue(input); } //put input on queue
+					continue;//skip the sleep cause we might be really low
+				}
+				Thread.Sleep(50);
+			}
+		}
+
+		private Profiler profiler = null;
+		public void Run(int deviceId, int workGroupSize, int workSize)
+		{
+			profiler = new Profiler();
+
+			#region init
 			profiler.StartRegion("init");
+			//create device context and kernel
 			CLDeviceInfo device = GetDevices()[deviceId];
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
@@ -48,34 +131,35 @@ namespace scallion
 				)
 			);
 			CLKernel kernel = context.CreateKernel(program, "shasearch");
-			
-			const ulong EXP_MIN = 0x01010001;
-			const ulong EXP_MAX = 0x7FFFFFFF;
+			//Create buffers
+			CLBuffer<uint> bufLastWs;
+			CLBuffer<uint> bufMidstates;
+			CLBuffer<int> bufExpIndexes;
+			CLBuffer<uint> bufResults;
+			{
+				int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
+				uint[] LastWs = new uint[num_exps * 16];
+				uint[] Midstates = new uint[num_exps * 5];
+				int[] ExpIndexes = new int[num_exps];
+				uint[] Results = new uint[128];
 
-			int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
-			int cur_exp_num = 0; 
-			uint[] LastWs = new uint[num_exps*16];
-			uint[] Midstates = new uint[num_exps*5];
-			int[] ExpIndexes = new int[num_exps];
-
-			BigNumber[] Exps = new BigNumber[num_exps];
-
-			uint[] Results = new uint[128];
-
-			CLBuffer<uint> bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
-			CLBuffer<uint> bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
-			CLBuffer<int> bufExpIndexes = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, ExpIndexes);
-			CLBuffer<uint> bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
-
-			//__kernel void kernel(__const uint32* LastWs, __const uint32* Midstates, __const int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start){
-			uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str("tronro".PadRight(16,'a')));
-			uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask("xxxxxx".PadRight(16,'_')));
-			CLBuffer<uint> bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
-			CLBuffer<uint> bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
-
-			lock(new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
-
-			kernel.SetKernelArg(0, bufLastWs);			
+				bufLastWs = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, LastWs);
+				bufMidstates = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Midstates);
+				bufExpIndexes = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, ExpIndexes);
+				bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
+			}
+			//Create pattern buffers
+			CLBuffer<uint> bufPattern;
+			CLBuffer<uint> bufBitmask;
+			{
+				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str("tronro".PadRight(16, 'a')));
+				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask("xxxxxx".PadRight(16, '_')));
+				bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
+				bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
+			}
+			//Set kernel arguments
+			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
+			kernel.SetKernelArg(0, bufLastWs);
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufExpIndexes);
 			kernel.SetKernelArg(3, bufResults);
@@ -84,58 +168,37 @@ namespace scallion
 			kernel.SetKernelArg(6, bufPattern);
 			kernel.SetKernelArg(7, bufBitmask);
 			profiler.EndRegion("init");
-		
+
+			//start the thread to generate input data
+			Thread inputThread = new Thread(CreateInput);
+			inputThread.Start();
+			Thread.Sleep(3000);//wait just a bit so some work is available
+			#endregion
+
 			int loop = 0;
 
 			profiler.StartRegion("total without init");
 			bool success = false;
-			while(!success)
+			while (!success)
 			{
-				profiler.StartRegion("generate key");
-				RSAWrapper rsa = new RSAWrapper();
-				rsa.GenerateKey(1024); // Generate a key
-				profiler.EndRegion("generate key");
-
-				profiler.StartRegion("clear results array");
-				Array.Clear(Results,0,Results.Length);
-				profiler.EndRegion("clear results array");
-
-				// Build DERs and calculate midstates for exponents of representitive lengths
-				profiler.StartRegion("cpu precompute");
-				cur_exp_num = 0;
-				for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++) {
-					ulong exp = (ulong)0x01 << (int)((i-1)*8);
-
-					// Set the exponent in the RSA key
-					// NO SANITY CHECK - just for building a DER
-					rsa.Rsa.PublicExponent = (BigNumber)exp;
-					Exps[cur_exp_num] = (BigNumber)exp;
-
-					// Get the DER
-					byte[] der = rsa.DER;
-					int exp_index = der.Length % 64 - i;
-
-					// Put the DER into Ws
-					SHA1 Sha1 = new SHA1();
-					List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
-
-					// Put all but the last block through the hash
-					Ws.Take(Ws.Count-1).Select((t) => {
-						Sha1.SHA1_Block(t);
-						return t;
-					}).ToArray();
-
-					// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
-					Sha1.H.CopyTo(Midstates,5*cur_exp_num);
-					Ws.Last().Take(16).ToArray().CopyTo(LastWs,16*cur_exp_num);
-					ExpIndexes[cur_exp_num] = exp_index; 
-
-					// Increment the current exponent size
-					cur_exp_num++;
-
-					break;
+				KernelInput input = null;
+				lock (_kernelInput)
+				{
+					if (_kernelInput.Count > 0) input = _kernelInput.Dequeue();
 				}
-				profiler.EndRegion("cpu precompute");
+				if (input == null) //If we have run out of work sleep for a bit
+				{
+					Console.WriteLine("Lack of work for the GPU!! Taking a nap!!");
+					Thread.Sleep(250);
+					continue;
+				}
+
+				profiler.StartRegion("set buffers");
+				bufLastWs.Data = input.LastWs;
+				bufMidstates.Data = input.Midstates;
+				bufExpIndexes.Data = input.ExpIndexes;
+				bufResults.Data = input.Results;
+				profiler.EndRegion("set buffers");
 
 				profiler.StartRegion("write buffers");
 				bufLastWs.EnqueueWrite();
@@ -145,7 +208,8 @@ namespace scallion
 				profiler.EndRegion("write buffers");
 
 				profiler.StartRegion("run kernel");
-				kernel.EnqueueNDRangeKernel(1024*1024*16,128);
+				//kernel.EnqueueNDRangeKernel(1024*1024*16,128);
+				kernel.EnqueueNDRangeKernel(workSize, workGroupSize);
 				profiler.EndRegion("run kernel");
 
 				profiler.StartRegion("read results");
@@ -153,30 +217,31 @@ namespace scallion
 				profiler.EndRegion("read results");
 
 				loop++;
-				Console.WriteLine("Loop iteration {0}; Hash Count {1}",loop,1024*1024*16*loop);
+				Console.WriteLine("Loop iteration {0}; Hash Count {1}", loop, workSize * loop);
 
 				profiler.StartRegion("check results");
-				foreach (var result in Results)
+				foreach (var result in input.Results)
 				{
-					if(result != 0)
+					if (result != 0)
 					{
-						try {
-							Console.WriteLine("Exp: {0}",result);
-							rsa.ChangePublicExponent((BigNumber)result);
-							Console.WriteLine(rsa.OnionHash);
-							Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
-							success = true;	
-						} catch (Exception ex) {
-						
+						try
+						{
+							Console.WriteLine("Exp: {0}", result);
+							input.Rsa.ChangePublicExponent((BigNumber)result);
+							Console.WriteLine(input.Rsa.OnionHash);
+							Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+							success = true;
 						}
+						catch (Exception /*ex*/) { }
 					}
 				}
 				profiler.EndRegion("check results");
 			}
 
+			inputThread.Abort();//stop makin work
 			profiler.EndRegion("total without init");
 			Console.WriteLine(profiler.GetSummaryString());
-			Console.WriteLine("Hashes / second: {0}",((long)loop*1024*1024*16*1000)/profiler.GetTotalMS("total without init"));
+			Console.WriteLine("Hashes / second: {0}", ((long)loop * workSize * 1000) / profiler.GetTotalMS("total without init"));
 		}
 	}
 }
