@@ -115,6 +115,9 @@
   </Target>
   -->
   <ItemGroup>
-    <None Include="App.config" />
+    <EmbeddedResource Include="openssl.dll.config">
+      <DeployService-Deploy>true</DeployService-Deploy>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </EmbeddedResource>
   </ItemGroup>
 </Project>

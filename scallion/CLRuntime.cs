@@ -120,8 +120,8 @@ namespace scallion
 		{
 			int len = prefix.Length + suffix.Length;
 			long runtime_sec = (long)Math.Pow(2,5*len-1) / speed;
-			int hrs=(int)(runtime_sec/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
-			TimeSpan ts = new TimeSpan(hrs,min,sec);
+			int days=(int)(runtime_sec/86400), hrs=(int)((runtime_sec%86400)/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
+			TimeSpan ts = new TimeSpan(days,hrs,min,sec);
 			return ts;
 		}
 
