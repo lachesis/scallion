@@ -221,7 +221,7 @@ namespace scallion
 				profiler.EndRegion("read results");
 
 				loop++;
-				Console.WriteLine("Loop iteration {0}; Hash Count {1}", loop, (long)workSize * (long)loop);
+				Console.WriteLine("LoopIteration:{0} HashCount:{1:0.00}MH", loop, (long)workSize * (long)loop / (double)1000000);
 
 				profiler.StartRegion("check results");
 				foreach (var result in input.Results)
@@ -250,7 +250,7 @@ namespace scallion
 			inputThread.Abort();//stop makin work
 			profiler.EndRegion("total without init");
 			Console.WriteLine(profiler.GetSummaryString());
-			Console.WriteLine("Hashes / second: {0}", ((long)loop * (long)workSize * (long)1000) / profiler.GetTotalMS("total without init"));
+			Console.WriteLine("{0:0.00} million hashes per second", ((long)loop * (long)workSize * (long)1000) / (double)profiler.GetTotalMS("total without init") / (double)1000000);
 		}
 	}
 }
