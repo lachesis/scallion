@@ -116,6 +116,15 @@ namespace scallion
 			}
 		}
 
+		private TimeSpan PredictedRuntime(string prefix, string suffix, long speed)
+		{
+			int len = prefix.Length + suffix.Length;
+			long runtime_sec = (long)Math.Pow(2,5*len-1) / speed*2;
+			int hrs=(int)(runtime_sec/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
+			TimeSpan ts = new TimeSpan(hrs,min,sec);
+			return ts;
+		}
+
 		private Profiler profiler = null;
 		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string kernelName, string prefix, string suffix)
 		{
@@ -131,6 +140,9 @@ namespace scallion
 					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
 				)
 			);
+
+			// TODO: Make sure to check optimized kernel constraints somewhere
+
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
 			CLBuffer<uint> bufLastWs;
@@ -156,7 +168,7 @@ namespace scallion
 				string patternStr = prefix + "".PadLeft(16 - prefix.Length - suffix.Length, 'a') + suffix;
 				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str(patternStr));
 				string bitmaskStr = "".PadLeft(prefix.Length, 'x') + "".PadLeft(16 - prefix.Length - suffix.Length, '_') + "".PadLeft(suffix.Length, 'x');
-				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask("xxxxxx".PadRight(16, '_')));
+				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(bitmaskStr));
 				bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 				bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
 			}
@@ -179,6 +191,8 @@ namespace scallion
 			#endregion
 
 			int loop = 0;
+
+			var gpu_runtime_sw = System.Diagnostics.Stopwatch.StartNew();
 
 			profiler.StartRegion("total without init");
 			bool success = false;
@@ -221,7 +235,12 @@ namespace scallion
 				profiler.EndRegion("read results");
 
 				loop++;
-				Console.WriteLine("LoopIteration:{0} HashCount:{1:0.00}MH", loop, (long)workSize * (long)loop / (double)1000000);
+				Console.Write("\r");
+				long hashes = (long)workSize * (long)loop;
+				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}", 
+				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
+				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
+				              PredictedRuntime(prefix,suffix,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
 				foreach (var result in input.Results)
@@ -241,7 +260,7 @@ namespace scallion
 							Console.WriteLine();
 							success = true;
 						}
-						catch (Exception /*ex*/) { }
+						catch (OpenSslException /*ex*/) { }
 					}
 				}
 				profiler.EndRegion("check results");
