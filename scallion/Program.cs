@@ -15,6 +15,7 @@ namespace scallion
 		enum Mode
 		{
 			Normal,
+			NonOptimized,
 			Help,
 			ListDevices
 		}
@@ -25,37 +26,81 @@ namespace scallion
 			foreach (CLDeviceInfo device in CLRuntime.GetDevices())
 			{
 				if (!device.CompilerAvailable) continue;
-				Console.WriteLine("Id:{0} Name:{1}", deviceId, device.Name.Trim());
+				//get preferredWorkGroupSize
+				ulong preferredWorkGroupSize;
+				{
+					CLContext context = new CLContext(device.DeviceId);
+					IntPtr program = context.CreateAndCompileProgram(
+						System.IO.File.ReadAllText(
+							System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + "kernel.cl"
+						)
+					);
+					CLKernel kernel = context.CreateKernel(program, "shasearch");
+					preferredWorkGroupSize = kernel.KernelPreferredWorkGroupSizeMultiple;
+					kernel.Dispose();
+					OpenTK.Compute.CL10.CL.ReleaseProgram(program);
+					context.Dispose();
+				}
+				//display device
+				Console.WriteLine("Id:{0} Name:{1}",
+					deviceId, device.Name.Trim());
+				Console.WriteLine("    PreferredGroupSizeMultiple:{0} ComputeUnits:{1} ClockFrequency:{2}",
+					preferredWorkGroupSize, device.MaxComputeUnits, device.MaxClockFrequency);
+				Console.WriteLine("");
 				deviceId++;
 			}
 		}
-		public static void Help()
+		public static void Help(OptionSet p)
 		{
+			Console.WriteLine("Usage: scallion [OPTIONS]+ prefix suffix");
+			Console.WriteLine("Searches for a tor hidden address service that starts with the provided prefix and ends with the provided suffix.");
+			Console.WriteLine();
+			Console.WriteLine("Options:");
+			p.WriteOptionDescriptions(Console.Out);
 		}
 
 		static void Main(string[] args)
 		{
 			Mode mode = Mode.Normal;
 			int deviceId = 0;
+			int workGroupSize = 512;
+			int workSize = 1024 * 1024 * 16;
 			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
 			OptionSet p = new OptionSet()
-				.Add("h|?|help", parseMode(Mode.Help))
-				.Add("ld|ldevice", parseMode(Mode.ListDevices))
-				.Add("d|device=", (i) => { if (!string.IsNullOrEmpty(i)) { deviceId = int.Parse(i); } });
+				.Add("o|notoptimized", "Runs program using the kernel that is not optimized.", parseMode(Mode.NonOptimized))
+				.Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
+				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
+				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
+				.Add<int>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => workGroupSize = i)
+				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i);
 			List<string> extra = p.Parse(args);
-
+			if (mode == Mode.NonOptimized || mode == Mode.Normal)
+			{
+				if (extra.Count < 1) mode = Mode.Help;
+				else if (extra.Count < 2) extra.Add("");
+			}
 			switch (mode)
 			{
 				case Mode.Help:
-					Help();
+					Help(p);
 					break;
 				case Mode.ListDevices:
 					ListDevices();
 					break;
+				case Mode.Normal:
+					{
+						CLRuntime runtime = new CLRuntime();
+						runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+					}
+					break;
+				case Mode.NonOptimized:
+					{
+						CLRuntime runtime = new CLRuntime();
+						runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+					}
+					break;
 			}
 
-			CLRuntime runtime = new CLRuntime();
-			runtime.Run(deviceId, 128, 1024 * 1024 * 16);
 		}
 	}
 }

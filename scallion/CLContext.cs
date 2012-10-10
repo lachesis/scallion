@@ -53,6 +53,25 @@ namespace scallion
 		{
 			return new CLBuffer<T>(ContextId, CommandQueueId, memFlags, data);
 		}
+		private bool disposed = false;
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!this.disposed)
+			{
+				if (disposing) { /*Dispose managed resources*/ }
+				CL.ReleaseCommandQueue(CommandQueueId);
+				CL.ReleaseContext(ContextId);
+			}
+		}
+		~CLContext()
+        {
+            Dispose(false);
+        }
 	}
 	public unsafe class CLBuffer<T> : IDisposable where T : struct
 	{
@@ -183,5 +202,23 @@ namespace scallion
 				return ret;
 			}
 		}
+		private bool disposed = false;
+		public void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+		protected virtual void Dispose(bool disposing)
+		{
+			if (!this.disposed)
+			{
+				if (disposing) { /*Dispose managed resources*/ }
+				CL.ReleaseContext(ContextId);
+			}
+		}
+		~CLKernel()
+        {
+            Dispose(false);
+        }
 	}
 }

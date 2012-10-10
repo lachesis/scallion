@@ -116,7 +116,7 @@ namespace scallion
 		}
 
 		private Profiler profiler = null;
-		public void Run(int deviceId, int workGroupSize, int workSize)
+		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string prefix, string suffix)
 		{
 			profiler = new Profiler();
 
@@ -127,7 +127,7 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
 				System.IO.File.ReadAllText(
-					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + "kernel.cl"
+					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
 				)
 			);
 			CLKernel kernel = context.CreateKernel(program, "shasearch");
@@ -152,7 +152,9 @@ namespace scallion
 			CLBuffer<uint> bufPattern;
 			CLBuffer<uint> bufBitmask;
 			{
-				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str("tronro".PadRight(16, 'a')));
+				string patternStr = prefix + "".PadLeft(16 - prefix.Length - suffix.Length, 'a') + suffix;
+				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str(patternStr));
+				string bitmaskStr = "".PadLeft(prefix.Length, 'x') + "".PadLeft(16 - prefix.Length - suffix.Length, '_') + "".PadLeft(suffix.Length, 'x');
 				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask("xxxxxx".PadRight(16, '_')));
 				bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 				bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
