@@ -54,6 +54,7 @@ namespace scallion
 		}
 		const ulong EXP_MIN = 0x01010001;
 		const ulong EXP_MAX = 0x7FFFFFFF;
+		public bool Abort = false;
 		private Queue<KernelInput> _kernelInput = new Queue<KernelInput>();
 		private void CreateInput()
 		{
@@ -118,8 +119,8 @@ namespace scallion
 		private Profiler profiler = null;
 		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string prefix, string suffix)
 		{
+			Console.WriteLine("Cooking up some delicions scallions...");
 			profiler = new Profiler();
-
 			#region init
 			profiler.StartRegion("init");
 			//create device context and kernel
@@ -183,6 +184,7 @@ namespace scallion
 			bool success = false;
 			while (!success)
 			{
+				lock (this) { if (this.Abort) break; } //abort flag was set.... bail
 				KernelInput input = null;
 				lock (_kernelInput)
 				{
@@ -219,7 +221,7 @@ namespace scallion
 				profiler.EndRegion("read results");
 
 				loop++;
-				Console.WriteLine("Loop iteration {0}; Hash Count {1}", loop, workSize * loop);
+				Console.WriteLine("Loop iteration {0}; Hash Count {1}", loop, (long)workSize * (long)loop);
 
 				profiler.StartRegion("check results");
 				foreach (var result in input.Results)
@@ -228,10 +230,15 @@ namespace scallion
 					{
 						try
 						{
-							Console.WriteLine("Exp: {0}", result);
+							Console.WriteLine();
+							Console.WriteLine("Ding!! Delicions scallions for you!!");
+							Console.WriteLine();
+							Console.WriteLine("Exponent: {0}", result);
 							input.Rsa.ChangePublicExponent((BigNumber)result);
-							Console.WriteLine(input.Rsa.OnionHash);
+							Console.WriteLine("Address/Hash: " + input.Rsa.OnionHash);
+							Console.WriteLine();
 							Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+							Console.WriteLine();
 							success = true;
 						}
 						catch (Exception /*ex*/) { }
@@ -243,7 +250,7 @@ namespace scallion
 			inputThread.Abort();//stop makin work
 			profiler.EndRegion("total without init");
 			Console.WriteLine(profiler.GetSummaryString());
-			Console.WriteLine("Hashes / second: {0}", ((long)loop * workSize * 1000) / profiler.GetTotalMS("total without init"));
+			Console.WriteLine("Hashes / second: {0}", ((long)loop * (long)workSize * (long)1000) / profiler.GetTotalMS("total without init"));
 		}
 	}
 }

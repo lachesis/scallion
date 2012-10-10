@@ -47,9 +47,9 @@ namespace scallion
 			foreach (var kvp in records) {
 				long total_ms = kvp.Value.sw.ElapsedMilliseconds;
 				int count = kvp.Value.count;
-				long rate = total_ms != 0 ? count*1000 / total_ms : 0;
-				long msper = count != 0 ? total_ms / count : 0;
-				sb.AppendFormat("{0}: {1}ms / {2} ({3}ms, {4}/s)\n",kvp.Key,total_ms,count,msper,rate);
+				double rate = total_ms != 0 ? count * 1000 / (double)total_ms : 0;
+				double msper = count != 0 ? total_ms / (double)count : 0;
+				sb.AppendFormat("{0}: {1}ms / {2} ({3:0.##}ms, {4:0.##}/s)\n", kvp.Key, total_ms, count, msper, rate);
 			}
 			return sb.ToString();
 		}

@@ -53,12 +53,12 @@ namespace scallion
 		public static void Help(OptionSet p)
 		{
 			Console.WriteLine("Usage: scallion [OPTIONS]+ prefix suffix");
-			Console.WriteLine("Searches for a tor hidden address service that starts with the provided prefix and ends with the provided suffix.");
+			Console.WriteLine("Searches for a tor hidden service address that starts with the provided prefix and ends with the provided suffix.");
 			Console.WriteLine();
 			Console.WriteLine("Options:");
 			p.WriteOptionDescriptions(Console.Out);
 		}
-
+		static CLRuntime _runtime = new CLRuntime();
 		static void Main(string[] args)
 		{
 			Mode mode = Mode.Normal;
@@ -89,18 +89,28 @@ namespace scallion
 					break;
 				case Mode.Normal:
 					{
-						CLRuntime runtime = new CLRuntime();
-						runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
+						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
-						CLRuntime runtime = new CLRuntime();
-						runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
+						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
 					}
 					break;
 			}
 
+		}
+
+		static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+		{
+			Console.WriteLine();
+			Console.WriteLine("No delicions scallions for you!!");
+			Console.WriteLine("Stopping the GPU and shutting down...");
+			Console.WriteLine();
+			lock (_runtime) { _runtime.Abort = true; }
+			e.Cancel = true;
 		}
 	}
 }
