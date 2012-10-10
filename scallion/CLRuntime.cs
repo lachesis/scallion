@@ -117,7 +117,7 @@ namespace scallion
 		}
 
 		private Profiler profiler = null;
-		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string prefix, string suffix)
+		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string kernelName, string prefix, string suffix)
 		{
 			Console.WriteLine("Cooking up some delicions scallions...");
 			profiler = new Profiler();
@@ -131,7 +131,7 @@ namespace scallion
 					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
 				)
 			);
-			CLKernel kernel = context.CreateKernel(program, "shasearch");
+			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
 			CLBuffer<uint> bufLastWs;
 			CLBuffer<uint> bufMidstates;

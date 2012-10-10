@@ -90,13 +90,13 @@ namespace scallion
 				case Mode.Normal:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", "optimized", extra[0], extra[1]);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", "normal", extra[0], extra[1]);
 					}
 					break;
 			}
