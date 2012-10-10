@@ -30,12 +30,8 @@ namespace scallion
 				ulong preferredWorkGroupSize;
 				{
 					CLContext context = new CLContext(device.DeviceId);
-					IntPtr program = context.CreateAndCompileProgram(
-						System.IO.File.ReadAllText(
-							System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + "kernel.cl"
-						)
-					);
-					CLKernel kernel = context.CreateKernel(program, "shasearch");
+					IntPtr program = context.CreateAndCompileProgram(@"__kernel void get_size() { }");
+					CLKernel kernel = context.CreateKernel(program, "get_size");
 					preferredWorkGroupSize = kernel.KernelPreferredWorkGroupSizeMultiple;
 					kernel.Dispose();
 					OpenTK.Compute.CL10.CL.ReleaseProgram(program);
