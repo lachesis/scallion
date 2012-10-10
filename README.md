@@ -17,9 +17,11 @@ Build
 Usage
 -----
 List devices
+
     $ mono scallion/bin/Debug/scallion.exe -l
 
 Generate a hash
+
     $ mono scallion/bin/Debug/scallion.exe -d 0 prefix
     Cooking up some delicions scallions...
     LoopIteration:15  HashCount:251.66MH  Speed:89.2MH/s  Runtime:00:00:02  Predicted:00:00:12
@@ -60,6 +62,7 @@ Generate a hash
 Speed
 -----
 On my nVidia Quadro K2000M, I see around 90MH/s. With those speeds, I can generate a six character prefix in about six seconds on average. An eight character prefix would take about 1:45. To calculate the number of seconds required for a given prefix (on average), use this formula:
+
     seconds = 2^(5*length-1) / hashspeed 
  
 Security
