@@ -3,6 +3,7 @@ bin
 obj
 *.dll
 *.pdb
+*.suo
 
 # mstest test results
 TestResults
