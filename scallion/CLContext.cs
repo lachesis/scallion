@@ -22,14 +22,14 @@ namespace scallion
 			ContextId = CL.CreateContext(null, 1, new IntPtr[] { DeviceId }, IntPtr.Zero, IntPtr.Zero, errors);
 			if (errors[0] != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateContext");
 			CommandQueueId = CL.CreateCommandQueue(ContextId, DeviceId, (CommandQueueFlags)0, &error);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateCommandQueue");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling CreateCommandQueue: {0}",error));
 		}
 		public IntPtr CreateAndCompileProgram(string source)
 		{
 			ErrorCode error;
 			IntPtr programId;
 			programId = CL.CreateProgramWithSource(ContextId, 1, new string[] { source }, null, &error);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateProgramWithSource");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling CreateProgramWithSource: {0}",error));
 			error = (ErrorCode)CL.BuildProgram(programId, 0, (IntPtr[])null, null, IntPtr.Zero, IntPtr.Zero);
 			if (error != ErrorCode.Success)
 			{
@@ -40,7 +40,7 @@ namespace scallion
 				{
 					error = (ErrorCode)CL.GetProgramBuildInfo(programId, DeviceId, ProgramBuildInfo.ProgramBuildLog, new IntPtr(&parmSize), new IntPtr(valuePtr), (IntPtr*)IntPtr.Zero.ToPointer());
 				}
-				if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling GetProgramBuildInfo");
+				if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling GetProgramBuildInfo: {0}",error));
 				throw new System.InvalidOperationException(Encoding.ASCII.GetString(value).Trim('\0'));
 			}
 			return programId;
@@ -101,7 +101,7 @@ namespace scallion
 			BufferSize = Marshal.SizeOf(typeof(T)) * data.Length;
 			Data = data;
 			BufferId = CL.CreateBuffer(contextId, memFlags, new IntPtr(BufferSize), Handle.AddrOfPinnedObject(), &error);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateBuffer");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling CreateBuffer: {0}",error));
 		}
 
 		public void EnqueueWrite()
@@ -109,7 +109,7 @@ namespace scallion
 			ErrorCode error;
 			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize), 
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueWriteBuffer");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueWriteBuffer: {0}",error));
 		}
 
 		public void EnqueueRead()
@@ -117,7 +117,7 @@ namespace scallion
 			ErrorCode error;
 			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize),
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueReadBuffer");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueReadBuffer: {0}",error));
 		}
 
 		private bool disposed = false;
@@ -159,7 +159,7 @@ namespace scallion
 
 			ErrorCode error;
 			KernelId = CL.CreateKernel(ProgramId, KernelName, out error);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling CreateKernel");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling CreateKernel: {0}",error));
 		}
 		public void EnqueueNDRangeKernel(int globalWorkSize, int localWorkSize)
 		{
@@ -167,13 +167,13 @@ namespace scallion
 			IntPtr pglobalWorkSize = new IntPtr(globalWorkSize);
 			IntPtr plocalWorkSize = new IntPtr(localWorkSize);
 			error = (ErrorCode)CL.EnqueueNDRangeKernel(CommandQueueId, KernelId, 1, null, &pglobalWorkSize, &plocalWorkSize, 0, null, null);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling EnqueueNDRangeKernel");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueNDRangeKernel: {0}",error));
 		}
 		public void SetKernelArgLocal(int argIndex, int size)
 		{
 			ErrorCode error;
 			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(size), IntPtr.Zero);
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling SetKernelArg: {0}",error));
 		}
 		public void SetKernelArg<T>(int argIndex, T value) where T : struct
 		{
@@ -182,14 +182,14 @@ namespace scallion
 			int size = Marshal.SizeOf(typeof(T));
 			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(size), handle.AddrOfPinnedObject());
 			handle.Free();
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling SetKernelArg: {0}",error));
 		}
 		public void SetKernelArg<T>(int argIndex, CLBuffer<T> value) where T : struct
 		{
 			ErrorCode error;
 			IntPtr bufferId = value.BufferId;
 			error = (ErrorCode)CL.SetKernelArg(KernelId, argIndex, new IntPtr(sizeof(IntPtr)), new IntPtr(&bufferId));
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling SetKernelArg");
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling SetKernelArg: {0}",error));
 		}
 		public ulong KernelPreferredWorkGroupSizeMultiple
 		{
@@ -198,7 +198,7 @@ namespace scallion
 				ErrorCode error;
 				ulong ret = 0;
 				error = (ErrorCode)CL.GetKernelWorkGroupInfo(KernelId, DeviceId, KernelWorkGroupInfo.KernelPreferredWorkGroupSizeMultiple, new IntPtr(sizeof(IntPtr)), ref ret, (IntPtr*)IntPtr.Zero.ToPointer());
-				if (error != ErrorCode.Success) throw new System.InvalidOperationException("Error calling GetKernelWorkGroupInfo");
+				if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling GetKernelWorkGroupInfo: {0}",error));
 				return ret;
 			}
 		}
