@@ -190,8 +190,9 @@ namespace scallion
 
 		private Profiler profiler = null;
 		private uint workSize; 
+		private List<Thread> inputThreads = new List<Thread>();
 
-		public void Run(int deviceId, int workGroupSize, int workSize, KernelType kernelt, int keysize, string prefix, string suffix)
+		public void Run(int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, string prefix, string suffix)
 		{
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;
@@ -281,8 +282,11 @@ namespace scallion
 			profiler.EndRegion("init");
 
 			//start the thread to generate input data
-			Thread inputThread = new Thread(CreateInput);
-			inputThread.Start();
+			for (int i = 0; i < numThreadsCreateWork; i++) {
+				Thread inputThread = new Thread(CreateInput);
+				inputThread.Start();
+				inputThreads.Add(inputThread);
+			}
 			Thread.Sleep(3000);//wait just a bit so some work is available
 			#endregion
 
@@ -363,7 +367,7 @@ namespace scallion
 				profiler.EndRegion("check results");
 			}
 
-			inputThread.Abort();//stop makin work
+			foreach (var thread in inputThreads) thread.Abort();
 			profiler.EndRegion("total without init");
 			Console.WriteLine(profiler.GetSummaryString());
 			Console.WriteLine("{0:0.00} million hashes per second", ((long)loop * (long)workSize * (long)1000) / (double)profiler.GetTotalMS("total without init") / (double)1000000);
