@@ -228,6 +228,10 @@ namespace scallion
 
 			//create device context and kernel
 			CLDeviceInfo device = GetDevices()[deviceId];
+			if ((uint)workGroupSize > device.MaxWorkGroupSize)
+			{
+				workGroupSize = (int)device.MaxWorkGroupSize;
+			}
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
 				System.IO.File.ReadAllText(
