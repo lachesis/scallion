@@ -45,6 +45,27 @@ namespace scallion
 
 			return len;
 		}
+
+		public class RandomList<T>
+		{
+			private System.Random _rnd = new System.Random(); 
+			private List<T> _list = new List<T>();
+			public void Push(T value)
+			{
+				_list.Add(value);
+			}
+			public T Pop()
+			{
+				if(_list.Count <= 0) return default(T);
+				T ret = _list[_rnd.Next(0, _list.Count)];
+				_list.Remove(ret);
+				return ret;
+			}
+			public int Count
+			{
+				get { return _list.Count; }
+			}
+		}
 		
 		public class KernelInput
 		{
@@ -76,7 +97,7 @@ namespace scallion
 		const uint EXP_MIN = 0x01010001;
 		const uint EXP_MAX = 0x7FFFFFFF;
 		public bool Abort = false;
-		private Queue<KernelInput> _kernelInput = new Queue<KernelInput>();
+		private RandomList<KernelInput> _kernelInput = new RandomList<KernelInput>();
 		private void CreateInput()
 		{
 			while (true)
@@ -171,7 +192,7 @@ namespace scallion
 					{
 						foreach (KernelInput i in inputs)
 						{
-							_kernelInput.Enqueue(i);
+							_kernelInput.Push(i);
 						}
 					}
 					continue;//skip the sleep cause we might be really low
@@ -303,7 +324,7 @@ namespace scallion
 				KernelInput input = null;
 				lock (_kernelInput)
 				{
-					if (_kernelInput.Count > 0) input = _kernelInput.Dequeue();
+					if (_kernelInput.Count > 0) input = _kernelInput.Pop();
 				}
 				if (input == null) //If we have run out of work sleep for a bit
 				{
