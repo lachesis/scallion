@@ -69,9 +69,11 @@ Generate a hash
 
 Speed
 -----
-On my nVidia Quadro K2000M, I see around 90MH/s. With those speeds, I can generate a six character prefix in about six seconds on average. An eight character prefix would take about 1h 45m. To calculate the number of seconds required for a given prefix (on average), use this formula:
+On my nVidia Quadro K2000M, I see around 90 MH/s. With those speeds, I can generate a six character prefix in about six seconds on average. An eight character prefix would take about 1h 45m. To calculate the number of seconds required for a given prefix (on average), use this formula:
 
     seconds = 2^(5*length-1) / hashspeed 
+ 
+My friend's AMD Radeon HD6850 gets 600 MH/s. That's a 300x speedup over shallot. With that speed, he can find an eight character prefix in just 15 minutes on average.
 
 Security
 --------

@@ -62,6 +62,7 @@ namespace scallion
 			int workGroupSize = 512;
 			int workSize = 1024 * 1024 * 16;
 			int keySize = 1024;
+			int numThreadsCreateWork = 1;
 			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
 			OptionSet p = new OptionSet()
 				.Add<int>("k|keysize=", "Specify keysize for the RSA key", (i) => keySize = i)
@@ -70,7 +71,8 @@ namespace scallion
 				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
 				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
 				.Add<int>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => workGroupSize = i)
-				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i);
+				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i)
+					.Add<int>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work.", (i) => numThreadsCreateWork = i);
 			List<string> extra = p.Parse(args);
 			if (mode == Mode.NonOptimized || mode == Mode.Normal)
 			{
@@ -102,13 +104,13 @@ namespace scallion
 								break;
 						}
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, kt, keySize, extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, kt, keySize, extra[0], extra[1]);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, KernelType.Normal, keySize, extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Normal, keySize, extra[0], extra[1]);
 					}
 					break;
 			}

@@ -439,6 +439,7 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 }
 
 // Works with any exp index and starting length
+// Still requires that all of the exponent lie in the last SHA1 block.
 __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
 						__constant uint32* Pattern, __constant uint32* Bitmask)
 {
