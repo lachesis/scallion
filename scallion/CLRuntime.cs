@@ -163,7 +163,8 @@ namespace scallion
 					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
 					{
 						profiler.StartRegion("generate key");
-						inputs.Add(new KernelInput(input, EXP_MIN + workSize * i));
+						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
+						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
 						profiler.EndRegion("generate key");
 					}
 					lock (_kernelInput)//put input on queue

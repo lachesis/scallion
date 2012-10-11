@@ -72,7 +72,7 @@ namespace scallion
 				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
 				.Add<int>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => workGroupSize = i)
 				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i)
-					.Add<int>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work.", (i) => numThreadsCreateWork = i);
+					.Add<int>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => numThreadsCreateWork = i);
 			List<string> extra = p.Parse(args);
 			if (mode == Mode.NonOptimized || mode == Mode.Normal)
 			{
