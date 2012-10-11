@@ -361,7 +361,7 @@ void sha1_block(uint32 *in, uint32 *H)
 // Therefore, only works with 1024 bit keys and 4 byte exponents.
 // Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
 // ExpIndexes and len_start are NOT used, just taken for easy compatability
-__kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start,
+__kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
 						__constant uint32* Pattern, __constant uint32* Bitmask)
 {
 	uint64 exp;

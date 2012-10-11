@@ -38,6 +38,15 @@ namespace scallion
 		
 		public class KernelInput
 		{
+			public KernelInput(KernelInput input, uint baseExp)
+			{
+				Rsa = input.Rsa;
+				LastWs = input.LastWs;
+				Midstates = input.Midstates;
+				ExpIndexes = input.ExpIndexes;
+				Results = input.Results;
+				BaseExp = baseExp;
+			}
 			public KernelInput(int num_exps)
 			{
 				Rsa = new RSAWrapper();
@@ -45,15 +54,17 @@ namespace scallion
 				Midstates = new uint[num_exps * 5];
 				ExpIndexes = new int[num_exps];
 				Results = new uint[128];
+				BaseExp = EXP_MIN;
 			}
 			public readonly uint[] LastWs;
 			public readonly uint[] Midstates;
 			public readonly int[] ExpIndexes;
 			public readonly RSAWrapper Rsa;
 			public readonly uint[] Results;
+			public readonly uint BaseExp;
 		}
-		const ulong EXP_MIN = 0x01010001;
-		const ulong EXP_MAX = 0x7FFFFFFF;
+		const uint EXP_MIN = 0x01010001;
+		const uint EXP_MAX = 0x7FFFFFFF;
 		public bool Abort = false;
 		private Queue<KernelInput> _kernelInput = new Queue<KernelInput>();
 		private void CreateInput()
@@ -61,7 +72,7 @@ namespace scallion
 			while (true)
 			{
 				bool inputQueueIsLow = false;
-				lock (_kernelInput)	{ inputQueueIsLow = _kernelInput.Count < 30; }
+				lock (_kernelInput)	{ inputQueueIsLow = _kernelInput.Count < 300; }
 				if (inputQueueIsLow)
 				{
 					int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
@@ -109,7 +120,21 @@ namespace scallion
 						break;
 					}
 					profiler.EndRegion("cpu precompute");
-					lock (_kernelInput) { _kernelInput.Enqueue(input); } //put input on queue
+					List<KernelInput> inputs = new List<KernelInput>();
+					inputs.Add(input);
+					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 4 / workSize - 1; i++)
+					{
+						profiler.StartRegion("generate key");
+						inputs.Add(new KernelInput(input, EXP_MIN + workSize * i));
+						profiler.EndRegion("generate key");
+					}
+					lock (_kernelInput)//put input on queue
+					{
+						foreach (KernelInput i in inputs)
+						{
+							_kernelInput.Enqueue(i);
+						}
+					}
 					continue;//skip the sleep cause we might be really low
 				}
 				Thread.Sleep(50);
@@ -126,9 +151,11 @@ namespace scallion
 		}
 
 		private Profiler profiler = null;
+		private uint workSize; 
 		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string kernelName, string prefix, string suffix)
 		{
 			Console.WriteLine("Cooking up some delicions scallions...");
+			this.workSize = (uint)workSize;
 			profiler = new Profiler();
 			#region init
 			profiler.StartRegion("init");
@@ -216,6 +243,7 @@ namespace scallion
 				bufMidstates.Data = input.Midstates;
 				bufExpIndexes.Data = input.ExpIndexes;
 				bufResults.Data = input.Results;
+				kernel.SetKernelArg(4, input.BaseExp);
 				profiler.EndRegion("set buffers");
 
 				profiler.StartRegion("write buffers");
