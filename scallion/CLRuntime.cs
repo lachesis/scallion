@@ -160,7 +160,7 @@ namespace scallion
 
 					List<KernelInput> inputs = new List<KernelInput>();
 					inputs.Add(input);
-					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 4 / workSize - 1; i++)
+					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
 					{
 						profiler.StartRegion("generate key");
 						inputs.Add(new KernelInput(input, EXP_MIN + workSize * i));
