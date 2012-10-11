@@ -305,13 +305,13 @@ namespace scallion
 		private string GetDeviceInfo_string(DeviceInfo paramName)
         {
             //get size
-            uint parmSize;
-            CheckError(CL.GetDeviceInfo(DeviceId, paramName, Null, Null, (IntPtr*)&parmSize));
+			IntPtr parmSizePtr;
+			CheckError(CL.GetDeviceInfo(DeviceId, paramName, Null, Null, out parmSizePtr));
             //get value
-            byte[] value = new byte[parmSize];
+			byte[] value = new byte[parmSizePtr.ToInt32()];
             fixed (byte* valuePtr = value)
             {
-                CheckError(CL.GetDeviceInfo(DeviceId, paramName, new IntPtr(&parmSize), new IntPtr(valuePtr), (IntPtr*)NullPtr));
+				CheckError(CL.GetDeviceInfo(DeviceId, paramName, parmSizePtr, new IntPtr(valuePtr), (IntPtr*)NullPtr));
             }
 			return Encoding.ASCII.GetString(value).Trim('\0');
         }
