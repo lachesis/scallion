@@ -7,6 +7,13 @@ using System.Threading;
 
 namespace scallion
 {
+	public enum KernelType
+	{
+		Normal,
+		Optimized4_9,
+		Optimized4_11
+	}
+
 	public class CLRuntime
 	{
 		public static List<CLDeviceInfo> GetDevices()
@@ -16,6 +23,9 @@ namespace scallion
 				.Where(i => i.CompilerAvailable)
 				.ToList();
 		}
+
+		private KernelType kernel_type;
+		private int keySize;
 
 		static private int get_der_len(ulong val)
 		{
@@ -68,13 +78,14 @@ namespace scallion
 					KernelInput input = new KernelInput(num_exps);
 
 					profiler.StartRegion("generate key");
-					input.Rsa.GenerateKey(1024); // Generate a key
+					input.Rsa.GenerateKey(keySize); // Generate a key
 					profiler.EndRegion("generate key");
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
 					int cur_exp_num = 0;
 					BigNumber[] Exps = new BigNumber[num_exps];
+					bool skip_flag = false;
 					for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++)
 					{
 						ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
@@ -87,6 +98,30 @@ namespace scallion
 						// Get the DER
 						byte[] der = input.Rsa.DER;
 						int exp_index = der.Length % 64 - i;
+						if (kernel_type == KernelType.Optimized4_9) {
+							if(exp_index != 9) { // exponent index assumed to be 9 in the kernel
+								Console.WriteLine("Exponent index doesn't match - skipping key");
+								skip_flag = true;
+								break;
+							}
+							if(i != 4) { // exponent length assumed to be 4 in the kernel
+								Console.WriteLine("Exponent length doesn't match - skipping key");
+								skip_flag = true;
+								break;
+							}
+						}
+						else if (kernel_type == KernelType.Optimized4_11) {
+							if(exp_index != 11) { // exponent index assumed to be 9 in the kernel
+								Console.WriteLine("Exponent index doesn't match - skipping key");
+								skip_flag = true;
+								break;
+							}
+							if(i != 4) { // exponent length assumed to be 4 in the kernel
+								Console.WriteLine("Exponent length doesn't match - skipping key");
+								skip_flag = true;
+								break;
+							}
+						}
 
 						// Put the DER into Ws
 						SHA1 Sha1 = new SHA1();
@@ -109,6 +144,7 @@ namespace scallion
 						break;
 					}
 					profiler.EndRegion("cpu precompute");
+					if(skip_flag) continue; // we got a bad key - don't enqueue it
 					lock (_kernelInput) { _kernelInput.Enqueue(input); } //put input on queue
 					continue;//skip the sleep cause we might be really low
 				}
@@ -126,12 +162,40 @@ namespace scallion
 		}
 
 		private Profiler profiler = null;
-		public void Run(int deviceId, int workGroupSize, int workSize, string kernelFileName, string kernelName, string prefix, string suffix)
+		public void Run(int deviceId, int workGroupSize, int workSize, KernelType kernelt, int keysize, string prefix, string suffix)
 		{
 			Console.WriteLine("Cooking up some delicions scallions...");
 			profiler = new Profiler();
 			#region init
 			profiler.StartRegion("init");
+
+			// Set the key size
+			keySize = keysize;
+
+			// Find kernel name and check key size
+			kernel_type = kernelt;
+			string kernelFileName=null, kernelName=null;
+			switch (kernel_type) {
+				case KernelType.Normal:
+					kernelFileName = "kernel.cl";
+					kernelName = "normal";
+					break;
+				case KernelType.Optimized4_9:
+					if(keySize != 1024) throw new ArgumentException("Kernel {0} only works with keysize 1024.");	
+					kernelFileName = "kernel.cl";
+					kernelName = "optimized4_9";
+					break;
+				case KernelType.Optimized4_11:
+					if(keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel {0} only works with keysize 2048 or 4096.");	
+					kernelFileName = "kernel.cl";
+					kernelName = "optimized4_11";
+					break;
+				default:
+					throw new ArgumentException("Pick a supported kernel.");
+			}
+
+			Console.WriteLine("Using kernel {0} from file {1} ({2})",kernelName,kernelFileName,kernel_type);
+
 			//create device context and kernel
 			CLDeviceInfo device = GetDevices()[deviceId];
 			CLContext context = new CLContext(device.DeviceId);
@@ -140,8 +204,6 @@ namespace scallion
 					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
 				)
 			);
-
-			// TODO: Make sure to check optimized kernel constraints somewhere
 
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
@@ -178,7 +240,7 @@ namespace scallion
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufExpIndexes);
 			kernel.SetKernelArg(3, bufResults);
-			kernel.SetKernelArg(4, EXP_MIN);
+			kernel.SetKernelArg(4, (uint)EXP_MIN);
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
 			kernel.SetKernelArg(6, bufPattern);
 			kernel.SetKernelArg(7, bufBitmask);

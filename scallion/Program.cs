@@ -61,9 +61,11 @@ namespace scallion
 			int deviceId = 0;
 			int workGroupSize = 512;
 			int workSize = 1024 * 1024 * 16;
+			int keySize = 1024;
 			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
 			OptionSet p = new OptionSet()
-				.Add("o|notoptimized", "Runs program using the kernel that is not optimized.", parseMode(Mode.NonOptimized))
+				.Add<int>("k|keysize=", "Specify keysize for the RSA key", (i) => keySize = i)
+				.Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
 				.Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
 				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
 				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
@@ -75,6 +77,7 @@ namespace scallion
 				if (extra.Count < 1) mode = Mode.Help;
 				else if (extra.Count < 2) extra.Add("");
 			}
+
 			switch (mode)
 			{
 				case Mode.Help:
@@ -85,14 +88,27 @@ namespace scallion
 					break;
 				case Mode.Normal:
 					{
+						KernelType kt;
+						switch (keySize) {
+							case 4096:
+							case 2048:
+								kt = KernelType.Optimized4_11;
+								break;
+							case 1024:
+								kt = KernelType.Optimized4_9;
+								break;
+							default:
+								kt = KernelType.Normal;
+								break;
+						}
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", "optimized", extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, kt, keySize, extra[0], extra[1]);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, "kernel.cl", "normal", extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, KernelType.Normal, keySize, extra[0], extra[1]);
 					}
 					break;
 			}

@@ -357,11 +357,53 @@ void sha1_block(uint32 *in, uint32 *H)
 	H[4] = e;
 }
 
+// Turns out EXP_INDEX doesn't change between 2048 and 4096
+// Assumes that EXP_LEN = 4 and EXP_INDEX = 11
+// Therefore, only works with 2048 bit keys and 4 byte exponents.
+// Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
+// ExpIndexes and len_start are NOT used, just taken for easy compatability
+__kernel void optimized4_11(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
+						__constant uint32* Pattern, __constant uint32* Bitmask)
+{
+	uint64 exp;
+	uint32 i;
+
+	uint32 W[16];
+	uint32 H[5];
+
+	exp = get_global_id(0) * 2 + base_exp;
+	
+	// Load Ws and Midstates into private variables
+	for(i=0; i<16; i++) W[i] = LastWs[i];
+	for(i=0; i<5; i++) H[i] = Midstates[i];
+	
+	// Load the exponent into the W
+	
+	W[2] &= 0xFFFFFF00u;
+	W[2] |= exp >> 24 & 0x000000FFu;
+	W[3] &= 0x000000FFu;
+	W[3] |= exp << 8 & 0xFFFFFF00u;
+      
+    // Take the last part of the hash
+	sha1_block(W,H);
+	
+	// Compare the first 3 uints of the hash with the pattern
+	i = 0xFFFFFFFFu;
+	i &= ~(H[0] ^ Pattern[0]) | ~Bitmask[0];
+	i &= ~(H[1] ^ Pattern[1]) | ~Bitmask[1];
+	i &= ~(H[2] ^ Pattern[2]) | ~Bitmask[2];
+	
+	// Did we win!?
+	if(!~i)
+		Results[get_local_id(0) % 128] = exp;
+}
+
+
 // Assumes that EXP_LEN = 4 and EXP_INDEX = 9
 // Therefore, only works with 1024 bit keys and 4 byte exponents.
 // Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
 // ExpIndexes and len_start are NOT used, just taken for easy compatability
-__kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start,
+__kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
 						__constant uint32* Pattern, __constant uint32* Bitmask)
 {
 	uint64 exp;
@@ -397,7 +439,7 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 }
 
 // Works with any exp index and starting length
-__kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint64 base_exp, uint8 len_start,
+__kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
 						__constant uint32* Pattern, __constant uint32* Bitmask)
 {
 	uint64 exp;
