@@ -31,9 +31,15 @@ namespace scallion
 				foreach (char c in remainingPattern.First())
 					yield return c + s;
 		}
-		//public IEnumerable<KeyValuePair<string, IEnumerable<string>>> GenerateBitmasksAndPatterns()
-		//{
-			
-		//}
+		public IEnumerable<string> GeneratePatterns(int minCharacters)
+		{
+			List<char[]> pattern = "................".ToArray()
+				.Select(i => new char[] { i }).ToList();
+			foreach (var charClass in _parsedRegex.Enumerate().OrderBy(i => i.Value.Length))
+			{
+				pattern[charClass.Key] = charClass.Value;
+			}
+			return GeneratePatterns(pattern);
+		}
 	}
 }
