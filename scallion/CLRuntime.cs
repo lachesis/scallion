@@ -255,12 +255,15 @@ namespace scallion
 			{
 				workGroupSize = (int)device.MaxWorkGroupSize;
 			}
+			Console.WriteLine("Using work group size {0}",workGroupSize);
 			CLContext context = new CLContext(device.DeviceId);
+			Console.Write("Compiling kernel... ");
 			IntPtr program = context.CreateAndCompileProgram(
 				System.IO.File.ReadAllText(
 					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
 				)
 			);
+			Console.WriteLine("done.");
 
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
