@@ -35,9 +35,10 @@ namespace scallion
 		{
 			List<char[]> pattern = "................".ToArray()
 				.Select(i => new char[] { i }).ToList();
-			foreach (var charClass in _parsedRegex.Enumerate().OrderBy(i => i.Value.Length))
+			var charClasses = _parsedRegex.Enumerate().OrderBy(i => i.Value.Length).ToArray();
+			for (int i = 0; i < minCharacters; i++)
 			{
-				pattern[charClass.Key] = charClass.Value;
+				pattern[charClasses[i].Key] = charClasses[i].Value;
 			}
 			return GeneratePatterns(pattern);
 		}
