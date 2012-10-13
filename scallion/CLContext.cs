@@ -106,16 +106,26 @@ namespace scallion
 
 		public void EnqueueWrite()
 		{
-			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize), 
-				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
-			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueWriteBuffer: {0}",error));
+			EnqueueWrite(false);
 		}
 
 		public void EnqueueRead()
 		{
+			EnqueueRead(false);
+		}
+
+		public void EnqueueWrite(bool async)
+		{
 			ErrorCode error;
-			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, true, new IntPtr(0), new IntPtr(BufferSize),
+			error = (ErrorCode)CL.EnqueueWriteBuffer(CommandQueueId, BufferId, !async, new IntPtr(0), new IntPtr(BufferSize), 
+				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
+			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueWriteBuffer: {0}",error));
+		}
+
+		public void EnqueueRead(bool async)
+		{
+			ErrorCode error;
+			error = (ErrorCode)CL.EnqueueReadBuffer(CommandQueueId, BufferId, !async, new IntPtr(0), new IntPtr(BufferSize),
 				Handle.AddrOfPinnedObject(), 0, (IntPtr*)IntPtr.Zero.ToPointer(), (IntPtr*)IntPtr.Zero.ToPointer());
 			if (error != ErrorCode.Success) throw new System.InvalidOperationException(String.Format("Error calling EnqueueReadBuffer: {0}",error));
 		}

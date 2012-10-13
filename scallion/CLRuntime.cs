@@ -342,19 +342,16 @@ namespace scallion
 				profiler.EndRegion("set buffers");
 
 				profiler.StartRegion("write buffers");
-				bufLastWs.EnqueueWrite();
-				bufMidstates.EnqueueWrite();
-				bufExpIndexes.EnqueueWrite();
-				bufResults.EnqueueWrite();
+				bufLastWs.EnqueueWrite(true);
+				bufMidstates.EnqueueWrite(true);
+				bufExpIndexes.EnqueueWrite(true);
+				bufResults.EnqueueWrite(true);
 				profiler.EndRegion("write buffers");
 
-				profiler.StartRegion("run kernel");
-				//kernel.EnqueueNDRangeKernel(1024*1024*16,128);
 				kernel.EnqueueNDRangeKernel(workSize, workGroupSize);
-				profiler.EndRegion("run kernel");
 
 				profiler.StartRegion("read results");
-				bufResults.EnqueueRead();
+				bufResults.EnqueueRead(false);
 				profiler.EndRegion("read results");
 
 				loop++;
