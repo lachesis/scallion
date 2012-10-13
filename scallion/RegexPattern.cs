@@ -27,8 +27,8 @@ namespace scallion
 		}
 		private IEnumerable<string> GeneratePatterns(IEnumerable<char[]> remainingPattern)
 		{
-			foreach (char c in remainingPattern.First())
-				foreach (string s in GeneratePatterns(remainingPattern.Skip(1)))
+			foreach (string s in GeneratePatterns(remainingPattern.Skip(1)))
+				foreach (char c in remainingPattern.First())
 					yield return c + s;
 		}
 		//public IEnumerable<KeyValuePair<string, IEnumerable<string>>> GenerateBitmasksAndPatterns()
