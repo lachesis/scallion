@@ -1,6 +1,6 @@
 Scallion
 ========
-Scallion lets you make create .onion addresses for [Tor's](https://www.torproject.org/) [hidden services](https://www.torproject.org/docs/hidden-services) using OpenCL. It is based in part on [shallot](https://github.com/katmagic/Shallot) and inspired by [vanitygen](https://github.com/samr7/vanitygen). The OpenCL SHA-1 implementation was adapted from [NearSHA](http://cr.yp.to/nearsha.html).
+Scallion lets you create .onion addresses for [Tor's](https://www.torproject.org/) [hidden services](https://www.torproject.org/docs/hidden-services) using OpenCL. It is based in part on [shallot](https://github.com/katmagic/Shallot) and inspired by [vanitygen](https://github.com/samr7/vanitygen). The OpenCL SHA-1 implementation was adapted from [NearSHA](http://cr.yp.to/nearsha.html).
 
 Scallion runs on Mono (tested in Arch Linux) and .NET 3.5 (tested on Windows 7 and Server 2008). It includes components from [OpenTK](http://www.opentk.com/) and [OpenSSL-net](http://openssl-net.sourceforge.net/).
 
@@ -19,7 +19,7 @@ Build Linux
 
 Build Windows
 -------------
-1. Open 'scallion.sln' in Visual Studio
+1. Open 'scallion.sln' in Visual Studio 2010 (Express should work; not tested)
 2. Build the solution
 
 Usage
