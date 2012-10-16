@@ -12,15 +12,24 @@ namespace scallion
 		private readonly Regex _regexRegex = new Regex(@"\[[abcdefghijklmnopqrstuvwxyz234567]*\]|[abcdefghijklmnopqrstuvwxyz234567.]");
 		public RegexPattern(string regex)
 		{
-			regex = regex.ToLower();
-			_regex = new Regex(regex);
+			//to lower and replace character classes
+			regex = regex
+				.ToLower()
+				.Replace(@"\D", "abcdefghijklmnopqrstuvwxyz")
+				.Replace(@"\w", ".")
+				.Replace(@"\d", "234567");
+			//validate regex
 			if (_regexRegex.Matches(regex).Cast<Match>().Sum(i => i.Value.Length) != regex.Length)
 				throw new System.ArgumentException("The passed regex string is not valid!");
+			_regex = new Regex(regex);
+			//parse regex
 			_parsedRegex = 
 				_regexRegex.Matches(regex)
 				.Cast<Match>()
 				.Select(match => match.Groups[0].Value.ToArray().Where(i => i != '[' && i != ']').ToArray())
 				.ToList();
+			//make sure the parsed regex is 16 chars long
+			while (_parsedRegex.Count < 16) _parsedRegex.Add(new char[] { '.' });
 		}
 		public IEnumerable<string> GenerateAllOnionPatternsForRegex()
 		{
@@ -51,6 +60,10 @@ namespace scallion
 			return GenerateOnionPatternsForGpu(minCharacters)
 				.Select(i => notDotRegex.Replace(i, "x"))
 				.Distinct();
+		}
+		public bool DoesOnionHashMatchPattern(string onionHash)
+		{
+			return _regex.IsMatch(onionHash);
 		}
 	}
 }
