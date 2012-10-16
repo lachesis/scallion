@@ -218,8 +218,17 @@ namespace scallion
 		const uint BIT_TABLE_LENGTH = 0x20000000; // in bits
 		const uint BIT_TABLE_WORD_SIZE = 32;
 
-		public void Run(int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
+		public void Run(ProgramParameters parms, string prefix)
+			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
+			int deviceId = (int)parms.DeviceId;
+			int workGroupSize = (int)parms.WorkGroupSize;
+			int workSize = (int)parms.WorkSize;
+			int numThreadsCreateWork = (int)parms.CpuThreads;
+			KernelType kernelt = parms.KernelType;
+			int keysize = (int)parms.KeySize;
+			IEnumerable<string> patterns = new string[] { prefix };
+
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;
 			profiler = new Profiler();

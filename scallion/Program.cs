@@ -11,59 +11,63 @@ using System.Reflection;
 
 namespace scallion
 {
+	public enum Mode
+	{
+		Normal,
+		NonOptimized,
+		Help,
+		ListDevices
+	}
+
+	public class ProgramParameters
+	{
+		private static ProgramParameters _instance = new ProgramParameters();
+		public static ProgramParameters Instance
+		{
+			get { return _instance; }
+		}
+		public uint CpuThreads = 1;
+		public uint WorkSize = 1024 * 1024 * 16;
+		public uint WorkGroupSize = 512;
+		public uint DeviceId = 0;
+		public uint KeySize = 1024;
+		public Mode ProgramMode = Mode.Normal;
+		public KernelType KernelType
+		{
+			get
+			{
+				if (ProgramMode == Mode.NonOptimized) 
+					return KernelType.Normal;
+				switch (KeySize)
+				{
+					case 4096:
+					case 2048:
+						return KernelType.Optimized4_11;
+					case 1024:
+						return KernelType.Optimized4_9;
+				}
+				throw new System.NotImplementedException();
+			}
+		}
+		public string CreateDefinesString()
+		{
+			StringBuilder builder = new StringBuilder();
+			FieldInfo[] fields = this.GetType()
+				.GetFields(BindingFlags.Public | BindingFlags.Instance);
+			foreach (FieldInfo field in fields)
+			{
+				object value = field.GetValue(this);
+				if (value.GetType() == typeof(uint))
+					builder.AppendLine(string.Format("#define {0} {1}", field.Name, value));
+			}
+			return builder.ToString();
+		}
+	}
+
 	class Program
 	{
-		public enum Mode
-		{
-			Normal,
-			NonOptimized,
-			Help,
-			ListDevices
-		}
-		public class ProgramParameters
-		{
-			private static ProgramParameters _instance = new ProgramParameters();
-			public static ProgramParameters Instance
-			{
-				get { return _instance; }
-			}
-			public uint CpuThreads = 1;
-			public uint WorkSize = 1024 * 1024 * 16;
-			public uint WorkGroupSize = 512;
-			public uint DeviceId = 0;
-			public uint KeySize = 1024;
-			public Mode ProgramMode = Mode.Normal;
-			public KernelType KernelType
-			{
-				get
-				{
-					if (ProgramMode == Mode.NonOptimized) 
-						return KernelType.Normal;
-					switch (KeySize)
-					{
-						case 4096:
-						case 2048:
-							return KernelType.Optimized4_11;
-						case 1024:
-							return KernelType.Optimized4_9;
-					}
-					throw new System.NotImplementedException();
-				}
-			}
-			public string CreateDefinesString()
-			{
-				StringBuilder builder = new StringBuilder();
-				FieldInfo[] fields = this.GetType()
-					.GetFields(BindingFlags.Public | BindingFlags.Instance);
-				foreach (FieldInfo field in fields)
-				{
-					object value = field.GetValue(this);
-					if (value.GetType() == typeof(uint))
-						builder.AppendLine(string.Format("#define {0} {1}", field.Name, value));
-				}
-				return builder.ToString();
-			}
-		}
+
+
 		public static void ListDevices()
 		{
 			int deviceId = 0;
@@ -131,13 +135,13 @@ namespace scallion
 				case Mode.Normal:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(ProgramParameters.Instance);
+						_runtime.Run(ProgramParameters.Instance,extra[0]);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(ProgramParameters.Instance);
+						_runtime.Run(ProgramParameters.Instance,extra[0]);
 					}
 					break;
 			}
