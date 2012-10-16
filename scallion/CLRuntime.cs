@@ -286,7 +286,7 @@ namespace scallion
 			{
 				string patternStr = prefix + "".PadLeft(16 - prefix.Length - suffix.Length, 'a') + suffix;
 				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str(patternStr));
-				string bitmaskStr = "".PadLeft(prefix.Length, 'x') + "".PadLeft(16 - prefix.Length - suffix.Length, '_') + "".PadLeft(suffix.Length, 'x');
+				string bitmaskStr = "".PadLeft(prefix.Length, 'x') + "".PadLeft(16 - prefix.Length - suffix.Length, '.') + "".PadLeft(suffix.Length, 'x');
 				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(bitmaskStr));
 				bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
 				bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
