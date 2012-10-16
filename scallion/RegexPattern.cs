@@ -19,7 +19,7 @@ namespace scallion
 			_parsedRegex = 
 				_regexRegex.Matches(regex)
 				.Cast<Match>()
-				.Select(match => match.Groups[0].Value.ToArray())
+				.Select(match => match.Groups[0].Value.ToArray().Where(i => i != '[' && i != ']').ToArray())
 				.ToList();
 		}
 		public IEnumerable<string> GenerateAllOnionPatternsForRegex()
@@ -28,12 +28,11 @@ namespace scallion
 		}
 		private IEnumerable<string> GenerateOnionPatterns(IEnumerable<char[]> remainingPattern)
 		{
-			if (remainingPattern.Any())
-			{
+			if (!remainingPattern.Any()) yield return "";
+			else
 				foreach (string s in GenerateOnionPatterns(remainingPattern.Skip(1)))
 					foreach (char c in remainingPattern.First())
 						yield return c + s;
-			}
 		}
 		public IEnumerable<string> GenerateOnionPatternsForGpu(int minCharacters)
 		{

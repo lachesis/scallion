@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace scallion
 {
@@ -22,7 +23,7 @@ namespace scallion
 		/// </summary>
 		public static byte[] CreateBase32Mask(string mask)
 		{
-			return FromBase32Str(mask.ToLower().Replace("x", "7").Replace("_", "a"));
+			return FromBase32Str(Regex.Replace(mask.ToLower(), "[^.]", "7").Replace(".", "a"));
 		}
 
 		public static byte[] FromBase32Str(string str)
