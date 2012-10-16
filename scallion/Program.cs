@@ -131,13 +131,13 @@ namespace scallion
 				case Mode.Normal:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						//_runtime.Run(ProgramParameters.Instance);
+						_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						//_runtime.Run(ProgramParameters.Instance);
+						_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 			}
