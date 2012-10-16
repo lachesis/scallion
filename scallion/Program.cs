@@ -7,19 +7,63 @@ using System.Runtime.InteropServices;
 using OpenSSL.Crypto;
 using OpenSSL.Core;
 using Mono.Options;
+using System.Reflection;
 
 namespace scallion
 {
 	class Program
 	{
-		enum Mode
+		public enum Mode
 		{
 			Normal,
 			NonOptimized,
 			Help,
 			ListDevices
 		}
-
+		public class ProgramParameters
+		{
+			private static ProgramParameters _instance = new ProgramParameters();
+			public static ProgramParameters Instance
+			{
+				get { return _instance; }
+			}
+			public uint CpuThreads = 1;
+			public uint WorkSize = 1024 * 1024 * 16;
+			public uint WorkGroupSize = 512;
+			public uint DeviceId = 0;
+			public uint KeySize = 1024;
+			public Mode ProgramMode = Mode.Normal;
+			public KernelType KernelType
+			{
+				get
+				{
+					if (ProgramMode == Mode.NonOptimized) 
+						return KernelType.Normal;
+					switch (KeySize)
+					{
+						case 4096:
+						case 2048:
+							return KernelType.Optimized4_11;
+						case 1024:
+							return KernelType.Optimized4_9;
+					}
+					throw new System.NotImplementedException();
+				}
+			}
+			public string CreateDefinesString()
+			{
+				StringBuilder builder = new StringBuilder();
+				FieldInfo[] fields = this.GetType()
+					.GetFields(BindingFlags.Public | BindingFlags.Instance);
+				foreach (FieldInfo field in fields)
+				{
+					object value = field.GetValue(this);
+					if (value.GetType() == typeof(uint))
+						builder.AppendLine(string.Format("#define {0} {1}", field.Name, value));
+				}
+				return builder.ToString();
+			}
+		}
 		public static void ListDevices()
 		{
 			int deviceId = 0;
@@ -57,30 +101,26 @@ namespace scallion
 		static CLRuntime _runtime = new CLRuntime();
 		static void Main(string[] args)
 		{
-			Mode mode = Mode.Normal;
-			int deviceId = 0;
-			int workGroupSize = 512;
-			int workSize = 1024 * 1024 * 16;
-			int keySize = 1024;
-			int numThreadsCreateWork = 1;
-			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
+			ProgramParameters parms = ProgramParameters.Instance;
+			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
 			OptionSet p = new OptionSet()
-				.Add<int>("k|keysize=", "Specify keysize for the RSA key", (i) => keySize = i)
+				.Add<uint>("k|keysize=", "Specify keysize for the RSA key", (i) => parms.KeySize = i)
 				.Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
 				.Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
 				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
-				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
-				.Add<int>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => workGroupSize = i)
-				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i)
-					.Add<int>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => numThreadsCreateWork = i);
+				.Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
+				.Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+				.Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
+				.Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i);
+				
 			List<string> extra = p.Parse(args);
-			if (mode == Mode.NonOptimized || mode == Mode.Normal)
+			if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
 			{
-				if (extra.Count < 1) mode = Mode.Help;
+				if (extra.Count < 1) parms.ProgramMode = Mode.Help;
 				else if (extra.Count < 2) extra.Add("");
 			}
 
-			switch (mode)
+			switch (parms.ProgramMode)
 			{
 				case Mode.Help:
 					Help(p);
@@ -90,27 +130,14 @@ namespace scallion
 					break;
 				case Mode.Normal:
 					{
-						KernelType kt;
-						switch (keySize) {
-							case 4096:
-							case 2048:
-								kt = KernelType.Optimized4_11;
-								break;
-							case 1024:
-								kt = KernelType.Optimized4_9;
-								break;
-							default:
-								kt = KernelType.Normal;
-								break;
-						}
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, kt, keySize, extra[0], extra[1]);
+						//_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Normal, keySize, extra[0], extra[1]);
+						//_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 			}
