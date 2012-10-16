@@ -5,6 +5,11 @@
 #define uint64 ulong
 #define int64 long
 
+// FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
+#define OFFSET_BASIS 2166136261u
+#define FNV_PRIME 16777619u
+#define fnv_hash(w1,w2,w3,b1,b2,b3) (uint)((((((OFFSET_BASIS ^ (w1 & b1)) * FNV_PRIME) ^ (w2 & b2)) * FNV_PRIME) ^ (w3 & b3)) * FNV_PRIME)
+
 inline uint32 andnot(uint32 a,uint32 b) { return a & ~b; }
 inline uint32 rotate1(uint32 a) { return (a << 1) | (a >> 31); }
 inline uint32 rotate5(uint32 a) { return (a << 5) | (a >> 27); }
@@ -398,15 +403,18 @@ __kernel void optimized4_11(__constant uint32* LastWs, __constant uint32* Midsta
 		Results[get_local_id(0) % 128] = exp;
 }
 
+#define BIT_TABLE_WORD_SIZE 32
+#define BIT_TABLE_LENGTH 0x20000000 // in bits
 
 // Assumes that EXP_LEN = 4 and EXP_INDEX = 9
 // Therefore, only works with 1024 bit keys and 4 byte exponents.
 // Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
 // ExpIndexes and len_start are NOT used, just taken for easy compatability
 __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
-						__constant uint32* Pattern, __constant uint32* Bitmask)
+						__constant uint32* BitmaskArray, uint32 num_bitmasks, __constant uint32* BitTable)
 {
 	uint64 exp;
+	uint32 fnv;
 	uint32 i;
 
 	uint32 W[16];
@@ -427,6 +435,14 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
     // Take the last part of the hash
 	sha1_block(W,H);
 	
+	// Get and check the FNV hash for each bitmask
+	for(i=0;i<num_bitmasks;i++) {
+		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]) % BIT_TABLE_LENGTH;
+		if(BitTable[fnv/BIT_TABLE_WORD_SIZE] & (uint32)(1 << (fnv%BIT_TABLE_WORD_SIZE)))
+			Results[get_local_id(0) % 128] = exp;
+	}
+	
+	/*
 	// Compare the first 3 uints of the hash with the pattern
 	i = 0xFFFFFFFFu;
 	i &= ~(H[0] ^ Pattern[0]) | ~Bitmask[0];
@@ -436,6 +452,7 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	// Did we win!?
 	if(!~i)
 		Results[get_local_id(0) % 128] = exp;
+	*/
 }
 
 // Works with any exp index and starting length
