@@ -48,7 +48,7 @@ namespace scallion
 		}
 		public static void Help(OptionSet p)
 		{
-			Console.WriteLine("Usage: scallion [OPTIONS]+ prefix suffix");
+			Console.WriteLine("Usage: scallion [OPTIONS]+ pattern [pattern ...]");
 			Console.WriteLine("Searches for a tor hidden service address that starts with the provided prefix and ends with the provided suffix.");
 			Console.WriteLine();
 			Console.WriteLine("Options:");
@@ -77,8 +77,9 @@ namespace scallion
 			if (mode == Mode.NonOptimized || mode == Mode.Normal)
 			{
 				if (extra.Count < 1) mode = Mode.Help;
-				else if (extra.Count < 2) extra.Add("");
 			}
+
+			_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Optimized4_9, 1024, new string[] { "tronro[234567]" });
 
 			switch (mode)
 			{
@@ -104,13 +105,13 @@ namespace scallion
 								break;
 						}
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, kt, keySize, extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, kt, keySize, extra);
 					}
 					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Normal, keySize, extra[0], extra[1]);
+						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Normal, keySize, extra);
 					}
 					break;
 			}
