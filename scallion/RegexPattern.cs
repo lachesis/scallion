@@ -14,7 +14,7 @@ namespace scallion
 		{
 			regex = regex.ToLower();
 			_regex = new Regex(regex);
-			if (_regexRegex.Matches(regex).Cast<Match>().Sum(i => i.Value.Length) == regex.Length)
+			if (_regexRegex.Matches(regex).Cast<Match>().Sum(i => i.Value.Length) != regex.Length)
 				throw new System.ArgumentException("The passed regex string is not valid!");
 			_parsedRegex = 
 				_regexRegex.Matches(regex)
@@ -28,9 +28,12 @@ namespace scallion
 		}
 		private IEnumerable<string> GenerateOnionPatterns(IEnumerable<char[]> remainingPattern)
 		{
-			foreach (string s in GenerateOnionPatterns(remainingPattern.Skip(1)))
-				foreach (char c in remainingPattern.First())
-					yield return c + s;
+			if (remainingPattern.Any())
+			{
+				foreach (string s in GenerateOnionPatterns(remainingPattern.Skip(1)))
+					foreach (char c in remainingPattern.First())
+						yield return c + s;
+			}
 		}
 		public IEnumerable<string> GenerateOnionPatternsForGpu(int minCharacters)
 		{
@@ -42,6 +45,13 @@ namespace scallion
 				pattern[charClasses[i].Key] = charClasses[i].Value;
 			}
 			return GenerateOnionPatterns(pattern);
+		}
+		public IEnumerable<string> GenerateOnionPatternBitmasksForGpu(int minCharacters)
+		{
+			Regex notDotRegex = new Regex("[^.]");
+			return GenerateOnionPatternsForGpu(minCharacters)
+				.Select(i => notDotRegex.Replace(i, "x"))
+				.Distinct();
 		}
 	}
 }
