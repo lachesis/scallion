@@ -416,6 +416,9 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	uint64 exp;
 	uint32 fnv;
 	uint32 i;
+	
+	uint32 bitloc;
+	uint32 wordloc;
 
 	uint32 W[16];
 	uint32 H[5];
@@ -437,8 +440,18 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	
 	// Get and check the FNV hash for each bitmask
 	for(i=0;i<num_bitmasks;i++) {
-		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]) % BIT_TABLE_LENGTH;
-		if(BitTable[fnv/BIT_TABLE_WORD_SIZE] & (uint32)(1 << (fnv%BIT_TABLE_WORD_SIZE)))
+		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]);
+		fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+		bitloc = fnv & 31;
+		wordloc = (uint)(fnv >> 5) & 0xffffff;
+		/*Results[0] = exp;
+		Results[1] = fnv;
+		Results[2] = H[0];
+		Results[3] = H[1];
+		Results[4] = H[2];*/
+		//Results[2] = BitmaskArray[2];
+		//Results[3] = num_bitmasks;
+		if(BitTable[wordloc] & (uint32)(1 << bitloc))
 			Results[get_local_id(0) % 128] = exp;
 	}
 	

@@ -201,9 +201,9 @@ namespace scallion
 			}
 		}
 
-		private TimeSpan PredictedRuntime(string prefix, string suffix, long speed)
+		private TimeSpan PredictedRuntime(string prefix, long speed)
 		{
-			int len = prefix.Length + suffix.Length;
+			int len = prefix.Length;
 			long runtime_sec = (long)Math.Pow(2,5*len-1) / speed;
 			int days=(int)(runtime_sec/86400), hrs=(int)((runtime_sec%86400)/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
 			TimeSpan ts = new TimeSpan(days,hrs,min,sec);
@@ -214,13 +214,52 @@ namespace scallion
 		private uint workSize; 
 		private List<Thread> inputThreads = new List<Thread>();
 
-		public void Run(int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, string prefix, string suffix)
+		const int MIN_CHARS = 7;
+		const uint BIT_TABLE_LENGTH = 0x20000000; // in bits
+		const uint BIT_TABLE_WORD_SIZE = 32;
+
+		public void Run(ProgramParameters parms, string prefix)
+			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
+			int deviceId = (int)parms.DeviceId;
+			int workGroupSize = (int)parms.WorkGroupSize;
+			int workSize = (int)parms.WorkSize;
+			int numThreadsCreateWork = (int)parms.CpuThreads;
+			KernelType kernelt = parms.KernelType;
+			int keysize = (int)parms.KeySize;
+			IEnumerable<string> patterns = new string[] { prefix };
+
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;
 			profiler = new Profiler();
 			#region init
 			profiler.StartRegion("init");
+
+			// Combine patterns into a single regexp and build one of Richard's objects
+			var rp = new RegexPattern(String.Join("|",patterns.ToArray()));
+
+			// Create bitmasks array for the GPU
+			var gpu_bitmasks = rp.GenerateOnionPatternBitmasksForGpu(MIN_CHARS)
+								 .Select(t=>TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
+								 .SelectMany(t=>t).ToArray();
+
+			// Create bittable for the GPU
+			var bittable = new uint[BIT_TABLE_LENGTH/BIT_TABLE_WORD_SIZE];
+			foreach (var pattern in rp.GenerateOnionPatternsForGpu(MIN_CHARS)) {
+				uint[] pattern_arr = TorBase32.ToUIntArray(TorBase32.FromBase32Str(pattern.Replace(".","a")));
+				//uint[] bitmask_arr = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(pattern));
+
+				// FNV Hash the pattern ANDed with its bitmask
+				uint fnv = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
+				fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+				uint bitloc = fnv & 31;
+				uint wordloc = (uint)(fnv >> 5) & 0xffffff;
+
+				Console.WriteLine("Pattern: {3}; FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc,pattern);
+
+				// And index it into the bittable
+				bittable[wordloc] |= (uint)(0x01u << (int)bitloc);
+			}
 
 			// Set the key size
 			keySize = keysize;
@@ -262,6 +301,16 @@ namespace scallion
 				)
 			);
 
+
+
+
+
+
+
+
+
+
+
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
 			CLBuffer<uint> bufLastWs;
@@ -281,15 +330,11 @@ namespace scallion
 				bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
 			}
 			//Create pattern buffers
-			CLBuffer<uint> bufPattern;
-			CLBuffer<uint> bufBitmask;
+			CLBuffer<uint> bufBitTable;
+			CLBuffer<uint> bufBitmasks;
 			{
-				string patternStr = prefix + "".PadLeft(16 - prefix.Length - suffix.Length, 'a') + suffix;
-				uint[] Pattern = TorBase32.ToUIntArray(TorBase32.FromBase32Str(patternStr));
-				string bitmaskStr = "".PadLeft(prefix.Length, 'x') + "".PadLeft(16 - prefix.Length - suffix.Length, '.') + "".PadLeft(suffix.Length, 'x');
-				uint[] Bitmask = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(bitmaskStr));
-				bufPattern = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Pattern);
-				bufBitmask = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Bitmask);
+				bufBitTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, bittable);
+				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, gpu_bitmasks);
 			}
 			//Set kernel arguments
 			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
@@ -299,9 +344,13 @@ namespace scallion
 			kernel.SetKernelArg(3, bufResults);
 			kernel.SetKernelArg(4, (uint)EXP_MIN);
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
-			kernel.SetKernelArg(6, bufPattern);
-			kernel.SetKernelArg(7, bufBitmask);
+			kernel.SetKernelArg(6, bufBitmasks);
+			kernel.SetKernelArg(7, bufBitmasks.Data.Length / 3);
+			kernel.SetKernelArg(8, bufBitTable);
 			profiler.EndRegion("init");
+
+			bufBitmasks.EnqueueWrite(false);
+			bufBitTable.EnqueueWrite(false);
 
 			//start the thread to generate input data
 			for (int i = 0; i < numThreadsCreateWork; i++) {
@@ -360,7 +409,7 @@ namespace scallion
 				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
-				              PredictedRuntime(prefix,suffix,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
+				              PredictedRuntime(patterns.ToArray()[0],hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
 				foreach (var result in input.Results)
@@ -369,16 +418,34 @@ namespace scallion
 					{
 						try
 						{
-							Console.WriteLine();
-							Console.WriteLine("Ding!! Delicions scallions for you!!");
-							Console.WriteLine();
-							Console.WriteLine("Exponent: {0}", result);
 							input.Rsa.ChangePublicExponent((BigNumber)result);
-							Console.WriteLine("Address/Hash: " + input.Rsa.OnionHash);
-							Console.WriteLine();
-							Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
-							Console.WriteLine();
-							success = true;
+
+							string onion_hash = input.Rsa.OnionHash;
+							var hash_uints = TorBase32.ToUIntArray(TorBase32.FromBase32Str(onion_hash));
+							hash_uints[1] &= 0xe0000000;
+							hash_uints[2] = 0;
+
+							var fnv = Util.FNVHash(hash_uints[0],hash_uints[1],hash_uints[2]);
+							fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+							uint bitloc = fnv & 31;
+							uint wordloc = (uint)(fnv >> 5) & 0xffffff;
+
+							Console.WriteLine("FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc);
+
+
+							if(rp.DoesOnionHashMatchPattern(onion_hash))
+							{
+								Console.WriteLine();
+								Console.WriteLine("Ding!! Delicions scallions for you!!");
+								Console.WriteLine();
+								Console.WriteLine("Exponent: {0}", result);
+								input.Rsa.ChangePublicExponent((BigNumber)result);
+								Console.WriteLine("Address/Hash: " + onion_hash + ".onion");
+								Console.WriteLine();
+								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+								Console.WriteLine();
+								success = true;
+							}
 						}
 						catch (OpenSslException /*ex*/) { }
 					}
