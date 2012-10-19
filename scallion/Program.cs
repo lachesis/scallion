@@ -53,15 +53,21 @@ namespace scallion
 		public string CreateDefinesString()
 		{
 			StringBuilder builder = new StringBuilder();
-			FieldInfo[] fields = this.GetType()
-				.GetFields(BindingFlags.Public | BindingFlags.Instance);
-			foreach (FieldInfo field in fields)
+			var fields = this.GetType()
+				.GetFields(BindingFlags.Public | BindingFlags.Instance)
+				.Cast<object>()
+				.Concat(this.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).Cast<object>());
+			foreach (var field in fields)
 			{
-				object value = field.GetValue(this);
-				if (value.GetType() == typeof(uint))
-					builder.AppendLine(string.Format("#define {0} {1}", field.Name, value));
-				if (value.GetType() == typeof(KernelType))
-					builder.AppendLine(string.Format("#define KT_{0}", value));
+				KeyValuePair<string, object> value = new KeyValuePair<string, object>();
+				if (field as FieldInfo != null)
+					value = new KeyValuePair<string, object>(((FieldInfo)field).Name, ((FieldInfo)field).GetValue(this));
+				else if (field as PropertyInfo != null)
+					value = new KeyValuePair<string, object>(((PropertyInfo)field).Name, ((PropertyInfo)field).GetValue(this, null));
+				if (value.Value.GetType() == typeof(uint))
+					builder.AppendLine(string.Format("#define {0} {1}", value.Key, value.Value));
+				if (value.Value.GetType() == typeof(KernelType))
+					builder.AppendLine(string.Format("#define KT_{0}", value.Key));
 			}
 			return builder.ToString();
 		}
