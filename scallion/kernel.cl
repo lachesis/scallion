@@ -443,15 +443,14 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	// Get and check the FNV hash for each bitmask
 	for(i=0;i<num_bitmasks;i++) {
 		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]);
-		fnv10 = (fnv >> 10) ^ (fnv & 1023); // collapse the FNV to 10-bits 
+		fnv10 = (fnv >> 10 ^ fnv) & 1023u; // collapse the FNV to 10-bits 
 		dataaddr = HashTable[fnv10*2];
 		datalen = HashTable[fnv10*2+1];
 		
 		for(j=0;j<datalen;j++) {
 			if(DataArray[dataaddr+j] == fnv) {
 				Results[get_local_id(0) % 128] = exp;
-				return;
-			}		
+			}
 		}
 	}
 }
