@@ -215,7 +215,7 @@ namespace scallion
 		private List<Thread> inputThreads = new List<Thread>();
 
 		const int MIN_CHARS = 7;
-		const uint BIT_TABLE_LENGTH = 0x20000000; // in bits
+		const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
 		const uint BIT_TABLE_WORD_SIZE = 32;
 
 		public void Run(ProgramParameters parms, string prefix)

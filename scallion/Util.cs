@@ -19,6 +19,10 @@ namespace scallion
 
 		private const uint OFFSET_BASIS = 2166136261;
 		private const uint FNV_PRIME = 16777619;
+		public static uint FNVHash(uint a, uint b)
+		{
+			return (uint)((((OFFSET_BASIS ^ a) * FNV_PRIME) ^ b) * FNV_PRIME);
+		}
 		public static uint FNVHash(uint a, uint b, uint c)
 		{
 			return (uint)((((((OFFSET_BASIS ^ a) * FNV_PRIME) ^ b) * FNV_PRIME) ^ c) * FNV_PRIME);
