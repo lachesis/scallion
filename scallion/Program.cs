@@ -90,6 +90,8 @@ namespace scallion
 					deviceId, device.Name.Trim());
 				Console.WriteLine("    PreferredGroupSizeMultiple:{0} ComputeUnits:{1} ClockFrequency:{2}",
 					preferredWorkGroupSize, device.MaxComputeUnits, device.MaxClockFrequency);
+				Console.WriteLine("    MaxConstantBufferSize:{0} MaxConstantArgs:{1} MaxMemAllocSize:{2}",
+				    device.MaxConstantBufferSize, device.MaxConstantArgs, device.MaxMemAllocSize);
 				Console.WriteLine("");
 				deviceId++;
 			}
@@ -124,6 +126,7 @@ namespace scallion
 				else if (extra.Count < 2) extra.Add("");
 			}
 
+			//_runtime.Run(ProgramParameters.Instance,"tron[2345]");
 			switch (parms.ProgramMode)
 			{
 				case Mode.Help:
