@@ -236,35 +236,39 @@ namespace scallion
 			profiler.StartRegion("init");
 
 			// Combine patterns into a single regexp and build one of Richard's objects
-			var rp = new RegexPattern(String.Join("|",patterns.ToArray()));
+			var rp = new RegexPattern(String.Join("|", patterns.ToArray()));
 
 			// Create bitmasks array for the GPU
 			var gpu_bitmasks = rp.GenerateOnionPatternBitmasksForGpu(MIN_CHARS)
-								 .Select(t=>TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
-								 .SelectMany(t=>t).ToArray();
-
-			Func<uint[], ushort> fnv =
-				(pattern_arr) =>
-				{
-					uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
-					f = ((f >> 10) ^ f) & (uint)1023;
-					return (ushort) f;
-				};
-			var gpu_dict_list = rp.GenerateOnionPatternsForGpu(7)
-				.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
-				.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0], i[1], i[2])))
-				.GroupBy(i => i.Key)
-				.OrderBy(i => i.Key)
-				.ToList();
-			uint[] dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
-			ushort[] hashTable = new ushort[2048]; //item 1 index, item 2 length
-			int currIndex = 0;
-			foreach (var item in gpu_dict_list)
+								 .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
+								 .SelectMany(t => t).ToArray();
+			//Create Hash Table
+			uint[] dataArray;
+			ushort[] hashTable;
 			{
-				int len = item.Count();
-				hashTable[item.Key * 2] = (ushort)currIndex;
-				hashTable[item.Key * 2 + 1] = (ushort)len;
-				currIndex += len;
+				Func<uint[], ushort> fnv =
+					(pattern_arr) =>
+					{
+						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
+						f = ((f >> 10) ^ f) & (uint)1023;
+						return (ushort)f;
+					};
+				var gpu_dict_list = rp.GenerateOnionPatternsForGpu(7)
+					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
+					.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0], i[1], i[2])))
+					.GroupBy(i => i.Key)
+					.OrderBy(i => i.Key)
+					.ToList();
+				dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
+				hashTable = new ushort[2048]; //item 1 index, item 2 length
+				int currIndex = 0;
+				foreach (var item in gpu_dict_list)
+				{
+					int len = item.Count();
+					hashTable[item.Key * 2] = (ushort)currIndex;
+					hashTable[item.Key * 2 + 1] = (ushort)len;
+					currIndex += len;
+				}
 			}
 
 			// Set the key size
@@ -272,19 +276,20 @@ namespace scallion
 
 			// Find kernel name and check key size
 			kernel_type = kernelt;
-			string kernelFileName=null, kernelName=null;
-			switch (kernel_type) {
+			string kernelFileName = null, kernelName = null;
+			switch (kernel_type)
+			{
 				case KernelType.Normal:
 					kernelFileName = "kernel.cl";
 					kernelName = "normal";
 					break;
 				case KernelType.Optimized4_9:
-					if(keySize != 1024) throw new ArgumentException("Kernel {0} only works with keysize 1024.");	
+					if (keySize != 1024) throw new ArgumentException("Kernel {0} only works with keysize 1024.");
 					kernelFileName = "kernel.cl";
 					kernelName = "optimized4_9";
 					break;
 				case KernelType.Optimized4_11:
-					if(keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel {0} only works with keysize 2048 or 4096.");	
+					if (keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel {0} only works with keysize 2048 or 4096.");
 					kernelFileName = "kernel.cl";
 					kernelName = "optimized4_11";
 					break;
@@ -292,7 +297,7 @@ namespace scallion
 					throw new ArgumentException("Pick a supported kernel.");
 			}
 
-			Console.WriteLine("Using kernel {0} from file {1} ({2})",kernelName,kernelFileName,kernel_type);
+			Console.WriteLine("Using kernel {0} from file {1} ({2})", kernelName, kernelFileName, kernel_type);
 
 			//create device context and kernel
 			CLDeviceInfo device = GetDevices()[deviceId];
@@ -355,7 +360,8 @@ namespace scallion
 			bufDataArray.EnqueueWrite(true);
 
 			//start the thread to generate input data
-			for (int i = 0; i < numThreadsCreateWork; i++) {
+			for (int i = 0; i < numThreadsCreateWork; i++)
+			{
 				Thread inputThread = new Thread(CreateInput);
 				inputThread.Start();
 				inputThreads.Add(inputThread);
@@ -408,6 +414,7 @@ namespace scallion
 				loop++;
 				Console.Write("\r");
 				long hashes = (long)workSize * (long)loop;
+
 				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
@@ -435,7 +442,7 @@ namespace scallion
 							//Console.WriteLine("FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc);
 
 
-							if(rp.DoesOnionHashMatchPattern(onion_hash))
+							if (rp.DoesOnionHashMatchPattern(onion_hash))
 							{
 								Console.WriteLine();
 								Console.WriteLine("Ding!! Delicions scallions for you!!");
