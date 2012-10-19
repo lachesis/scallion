@@ -66,6 +66,7 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>CLDeviceInfo.tt</DependentUpon>
     </Compile>
+    <Compile Include="KernelGenerator.cs" />
     <Compile Include="RegexPattern.cs" />
     <Compile Include="ObjectDumper.cs" />
     <Compile Include="Options.cs" />
