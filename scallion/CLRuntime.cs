@@ -336,10 +336,12 @@ namespace scallion
 				bufResults = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, Results);
 			}
 			//Create pattern buffers
-			CLBuffer<uint> bufBitTable;
+			CLBuffer<ushort> bufHashTable;
+			CLBuffer<uint> bufDataArray;
 			CLBuffer<uint> bufBitmasks;
 			{
-				bufBitTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, new uint[] { });
+				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, hashTable);
+				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, dataArray);
 				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, gpu_bitmasks);
 			}
 			//Set kernel arguments
@@ -352,11 +354,13 @@ namespace scallion
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
 			kernel.SetKernelArg(6, bufBitmasks);
 			kernel.SetKernelArg(7, bufBitmasks.Data.Length / 3);
-			kernel.SetKernelArg(8, bufBitTable);
+			kernel.SetKernelArg(8, bufHashTable);
+			kernel.SetKernelArg(9, bufDataArray);
 			profiler.EndRegion("init");
 
-			bufBitmasks.EnqueueWrite(false);
-			bufBitTable.EnqueueWrite(false);
+			bufBitmasks.EnqueueWrite(true);
+			bufHashTable.EnqueueWrite(true);
+			bufDataArray.EnqueueWrite(true);
 
 			//start the thread to generate input data
 			for (int i = 0; i < numThreadsCreateWork; i++) {

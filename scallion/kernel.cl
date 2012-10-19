@@ -1,5 +1,7 @@
 #define uint8 char
 #define int8 char
+#define uint16 ushort
+#define int16 short
 #define uint32 uint
 #define int32 int
 #define uint64 ulong
