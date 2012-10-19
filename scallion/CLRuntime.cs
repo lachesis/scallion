@@ -243,23 +243,56 @@ namespace scallion
 								 .Select(t=>TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
 								 .SelectMany(t=>t).ToArray();
 
-			// Create bittable for the GPU
-			var bittable = new uint[BIT_TABLE_LENGTH/BIT_TABLE_WORD_SIZE];
-			foreach (var pattern in rp.GenerateOnionPatternsForGpu(MIN_CHARS)) {
-				uint[] pattern_arr = TorBase32.ToUIntArray(TorBase32.FromBase32Str(pattern.Replace(".","a")));
-				//uint[] bitmask_arr = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(pattern));
-
-				// FNV Hash the pattern ANDed with its bitmask
-				uint fnv = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
-				fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
-				uint bitloc = fnv & 31;
-				uint wordloc = (uint)(fnv >> 5) & 0xffffff;
-
-				Console.WriteLine("Pattern: {3}; FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc,pattern);
-
-				// And index it into the bittable
-				bittable[wordloc] |= (uint)(0x01u << (int)bitloc);
+			Func<uint[], ushort> fnv =
+				(pattern_arr) =>
+				{
+					uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
+					f = ((f >> 10) ^ f) & (uint)1023;
+					return (ushort) f;
+				};
+			var gpu_dict_list = rp.GenerateOnionPatternsForGpu(7)
+				.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.','a'))))
+				.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0],i[1],i[2])))
+				.OrderBy(i => i.Key)
+				.ToArray();
+			ushort[] hashTable = new ushort[2048]; //item 1 index, item 2 length
+			uint[] dataArray = new uint[gpu_dict_list.Length]; // gpu_dict_list.Select(i => i.Value).ToArray();
+			int currIndex = 0;
+			Dictionary<ushort, List<uint>> gpu_dict = new Dictionary<ushort, List<uint>>();
+			foreach (var item in gpu_dict_list)
+			{
+				if (!gpu_dict.ContainsKey(item.Key))
+					gpu_dict.Add(item.Key, new List<uint>());
+				gpu_dict[item.Key].Add(item.Value);
 			}
+			foreach (var item in gpu_dict)
+			{
+				hashTable[item.Key * 2] = (ushort)currIndex;
+				hashTable[item.Key * 2 + 1] = (ushort)item.Value.Count;
+				foreach (var fullhash in item.Value)
+				{
+					dataArray[currIndex] = fullhash;
+					currIndex++;
+				}
+			}
+
+			//// Create bittable for the GPU
+			//var bittable = new uint[BIT_TABLE_LENGTH/BIT_TABLE_WORD_SIZE];
+			//foreach (var pattern in rp.GenerateOnionPatternsForGpu(MIN_CHARS)) {
+			//    uint[] pattern_arr = TorBase32.ToUIntArray(TorBase32.FromBase32Str(pattern.Replace(".","a")));
+			//    //uint[] bitmask_arr = TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(pattern));
+
+			//    // FNV Hash the pattern ANDed with its bitmask
+			//    uint fnv = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
+			//    fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+			//    uint bitloc = fnv & 31;
+			//    uint wordloc = (uint)(fnv >> 5) & 0xffffff;
+
+			//    Console.WriteLine("Pattern: {3}; FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc,pattern);
+
+			//    // And index it into the bittable
+			//    bittable[wordloc] |= (uint)(0x01u << (int)bitloc);
+			//}
 
 			// Set the key size
 			keySize = keysize;
@@ -333,7 +366,7 @@ namespace scallion
 			CLBuffer<uint> bufBitTable;
 			CLBuffer<uint> bufBitmasks;
 			{
-				bufBitTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, bittable);
+				bufBitTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, new uint[] { });
 				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, gpu_bitmasks);
 			}
 			//Set kernel arguments
@@ -425,12 +458,12 @@ namespace scallion
 							hash_uints[1] &= 0xe0000000;
 							hash_uints[2] = 0;
 
-							var fnv = Util.FNVHash(hash_uints[0],hash_uints[1],hash_uints[2]);
-							fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
-							uint bitloc = fnv & 31;
-							uint wordloc = (uint)(fnv >> 5) & 0xffffff;
+							//var fnv = Util.FNVHash(hash_uints[0],hash_uints[1],hash_uints[2]);
+							//fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+							//uint bitloc = fnv & 31;
+							//uint wordloc = (uint)(fnv >> 5) & 0xffffff;
 
-							Console.WriteLine("FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc);
+							//Console.WriteLine("FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc);
 
 
 							if(rp.DoesOnionHashMatchPattern(onion_hash))
