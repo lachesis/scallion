@@ -16,12 +16,9 @@ namespace scallion
 				.ToArray();
 			_regex = new Regex(regex);
 		}
-		/// <summary>
-		/// might return the same pattern multiple times. Call .Distinct on the results if you do not want this to be the case
-		/// </summary>
 		public IEnumerable<string> GenerateAllOnionPatternsForRegex()
 		{
-			return _regexPatterns.SelectMany(i => i.GenerateAllOnionPatternsForRegex());
+			return _regexPatterns.SelectMany(i => i.GenerateAllOnionPatternsForRegex()).Distinct();
 		}
 		public IEnumerable<string> GenerateOnionPatternsForGpu(int minCharacters)
 		{
