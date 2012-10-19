@@ -258,13 +258,13 @@ namespace scallion
 					.OrderBy(i => i.Key)
 					.ToList();
 				dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
-				hashTable = new ushort[2048]; //item 1 index, item 2 length
+				hashTable = new ushort[1024]; //item 1 index, item 2 length
 				int currIndex = 0;
 				foreach (var item in gpu_dict_list)
 				{
 					int len = item.Count();
-					hashTable[item.Key * 2] = (ushort)currIndex;
-					hashTable[item.Key * 2 + 1] = (ushort)len;
+					hashTable[item.Key] = (ushort)currIndex;
+					//hashTable[item.Key * 2 + 1] = (ushort)len;
 					currIndex += len;
 				}
 			}
@@ -343,12 +343,11 @@ namespace scallion
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufResults);
 			kernel.SetKernelArg(3, (uint)EXP_MIN);
-			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
-			kernel.SetKernelArg(2, bufExpIndexes);
-			kernel.SetKernelArg(4, bufBitmasks);
-			kernel.SetKernelArg(5, bufBitmasks.Data.Length / 3);
-			kernel.SetKernelArg(6, bufHashTable);
-			kernel.SetKernelArg(7, bufDataArray);
+			kernel.SetKernelArg(4, (byte)get_der_len(EXP_MIN));
+			kernel.SetKernelArg(5, bufExpIndexes);
+			kernel.SetKernelArg(6, bufBitmasks);
+			kernel.SetKernelArg(7, bufHashTable);
+			kernel.SetKernelArg(8, bufDataArray);
 			profiler.EndRegion("init");
 
 			bufBitmasks.EnqueueWrite(true);
@@ -426,17 +425,7 @@ namespace scallion
 							input.Rsa.ChangePublicExponent((BigNumber)result);
 
 							string onion_hash = input.Rsa.OnionHash;
-							var hash_uints = TorBase32.ToUIntArray(TorBase32.FromBase32Str(onion_hash));
-							hash_uints[1] &= 0xe0000000;
-							hash_uints[2] = 0;
-
-							//var fnv = Util.FNVHash(hash_uints[0],hash_uints[1],hash_uints[2]);
-							//fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
-							//uint bitloc = fnv & 31;
-							//uint wordloc = (uint)(fnv >> 5) & 0xffffff;
-
-							//Console.WriteLine("FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc);
-
+							Console.WriteLine("CPU checking hash: {0}",onion_hash);
 
 							if (rp.DoesOnionHashMatchPattern(onion_hash))
 							{

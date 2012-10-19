@@ -20,8 +20,8 @@ GENERATED__CONSTANTS
 #define BEGIN_MASK(i) \
 	fnv = fnv_hash(H[0] & BitmaskArray[i*3+0], H[1] & BitmaskArray[i*3+1], H[2] & BitmaskArray[i*3+2]); \
 	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
-	dataaddr = HashTable[fnv10*2]; \
-	datalen = HashTable[fnv10*2+1];
+	dataaddr = HashTable[fnv10]; \
+	//datalen = HashTable[fnv10*2+1];
 
 #define CHECK_HASH(j) \
 	if(DataArray[dataaddr+j] == fnv) \
@@ -388,10 +388,11 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 {
 	uint64 exp;
 	uint32 fnv,fnv10;
-	uint32 i,j;
 	
 	uint16 dataaddr;
 	uint16 datalen;
+	
+	int i;
 
 	uint32 W[16];
 	uint32 H[5];
@@ -437,7 +438,11 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
 	uint32 exp_index;
 	int i;
 	int waddr, baddr;
-	uint32 running_total;
+	
+	uint32 fnv,fnv10;
+	
+	uint16 dataaddr;
+	uint16 datalen;
 
 	uint32 W[80];
 	uint32 H[5];
