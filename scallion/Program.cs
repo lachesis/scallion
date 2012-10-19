@@ -126,7 +126,7 @@ namespace scallion
 				else if (extra.Count < 2) extra.Add("");
 			}
 
-			//_runtime.Run(ProgramParameters.Instance,"tron[tron]");
+			//_runtime.Run(ProgramParameters.Instance,"prefix");
 			switch (parms.ProgramMode)
 			{
 				case Mode.Help:

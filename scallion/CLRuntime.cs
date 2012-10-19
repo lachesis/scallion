@@ -201,10 +201,10 @@ namespace scallion
 			}
 		}
 
-		private TimeSpan PredictedRuntime(string prefix, long speed)
+		private TimeSpan PredictedRuntime(double hashes_per_win, long speed)
 		{
-			int len = prefix.Length;
-			long runtime_sec = (long)Math.Pow(2,5*len-1) / speed;
+			//int len = prefix.Length;
+			long runtime_sec = (long)(hashes_per_win / speed); //(long)Math.Pow(2,5*len-1) / speed;
 			int days=(int)(runtime_sec/86400), hrs=(int)((runtime_sec%86400)/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
 			TimeSpan ts = new TimeSpan(days,hrs,min,sec);
 			return ts;
@@ -307,15 +307,7 @@ namespace scallion
 				)
 			);
 
-
-
-
-
-
-
-
-
-
+			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
@@ -419,7 +411,7 @@ namespace scallion
 				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
-				              PredictedRuntime(patterns.ToArray()[0],hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
+				              PredictedRuntime(hashes_per_win,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
 				foreach (var result in input.Results)
