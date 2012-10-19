@@ -12,10 +12,10 @@ GENERATED__CONSTANTS
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
-#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ w2) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
+#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
 
 #define BEGIN_MASK(i) \
-	fnv = fnv_hash(H[0] & BitmaskArray[i*3+0], H[1] & BitmaskArray[i*3+1], H[2] & BitmaskArray[i*3+2]); \
+	fnv = fnv_hash((H[0] & BitmaskArray[i*3+0]), (H[1] & BitmaskArray[i*3+1]), (H[2] & BitmaskArray[i*3+2])); \
 	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
 	dataaddr = HashTable[fnv10];
 
@@ -399,12 +399,13 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	for(i=0; i<5; i++) H[i] = Midstates[i];
 	
 	// Load the exponent into the W
-#if defined(KT_Optimized4_9)
+#ifdef KT_Optimized4_9
 	W[2] &= 0xFF000000u;
 	W[2] |= exp >> 8 & 0x00FFFFFFu;
 	W[3] &= 0x00FFFFFFu;
 	W[3] |= exp << 24 & 0xFF000000u;
-#elif defined(KT_Optimized4_11)
+#endif
+#ifdef KT_Optimized4_11
 	W[2] &= 0xFFFFFF00u;
 	W[2] |= exp >> 24 & 0x000000FFu;
 	W[3] &= 0x000000FFu;

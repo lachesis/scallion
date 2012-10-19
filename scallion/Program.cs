@@ -67,7 +67,7 @@ namespace scallion
 				if (value.Value.GetType() == typeof(uint))
 					builder.AppendLine(string.Format("#define {0} {1}", value.Key, value.Value));
 				if (value.Value.GetType() == typeof(KernelType))
-					builder.AppendLine(string.Format("#define KT_{0}", value.Key));
+					builder.AppendLine(string.Format("#define KT_{0}", value.Value));
 			}
 			return builder.ToString();
 		}
