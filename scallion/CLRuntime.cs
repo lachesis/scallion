@@ -205,9 +205,7 @@ namespace scallion
 		{
 			//int len = prefix.Length;
 			long runtime_sec = (long)(hashes_per_win / speed); //(long)Math.Pow(2,5*len-1) / speed;
-			int days=(int)(runtime_sec/86400), hrs=(int)((runtime_sec%86400)/3600), min=(int)(runtime_sec%3600)/60, sec=(int)(runtime_sec%60);
-			TimeSpan ts = new TimeSpan(days,hrs,min,sec);
-			return ts;
+			return TimeSpan.FromSeconds(runtime_sec);
 		}
 
 		private Profiler profiler = null;
