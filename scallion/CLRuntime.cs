@@ -247,7 +247,7 @@ namespace scallion
 				Func<uint[], ushort> fnv =
 					(pattern_arr) =>
 					{
-						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
+						uint f = Util.FNVHash(Util.Rotate5(pattern_arr[0]), pattern_arr[1], Util.Rotate5(pattern_arr[2]));
 						f = ((f >> 10) ^ f) & (uint)1023;
 						return (ushort)f;
 					};

@@ -56,6 +56,10 @@ namespace scallion
 		{
 			return (uint)((((OFFSET_BASIS ^ a) * FNV_PRIME) ^ b) * FNV_PRIME);
 		}
+		public static uint Rotate5(uint a)
+		{
+			return (a << 5) | (a >> 27);
+		}
 		public static uint FNVHash(uint a, uint b, uint c)
 		{
 			return (uint)((((((OFFSET_BASIS ^ a) * FNV_PRIME) ^ b) * FNV_PRIME) ^ c) * FNV_PRIME);

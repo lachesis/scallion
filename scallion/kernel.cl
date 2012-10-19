@@ -12,7 +12,7 @@ GENERATED__CONSTANTS
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
-#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ w1) * FNV_PRIME) ^ w2) * FNV_PRIME) ^ w3) * FNV_PRIME)
+#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ w2) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
 
 #define ResultsArraySize 128
 #define KT_Optimized4_9
@@ -484,4 +484,5 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
 	// Get and check the FNV hash for each bitmask
 	// Uses code generated on the C# side
 	GENERATED__CHECKING_CODE
+
 }
