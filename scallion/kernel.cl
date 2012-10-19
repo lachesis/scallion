@@ -14,14 +14,10 @@ GENERATED__CONSTANTS
 #define FNV_PRIME 16777619u
 #define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ w2) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
 
-#define ResultsArraySize 128
-#define KT_Optimized4_9
-
 #define BEGIN_MASK(i) \
 	fnv = fnv_hash(H[0] & BitmaskArray[i*3+0], H[1] & BitmaskArray[i*3+1], H[2] & BitmaskArray[i*3+2]); \
 	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
-	dataaddr = HashTable[fnv10]; \
-	//datalen = HashTable[fnv10*2+1];
+	dataaddr = HashTable[fnv10];
 
 #define CHECK_HASH(j) \
 	if(DataArray[dataaddr+j] == fnv) \
@@ -390,7 +386,6 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	uint32 fnv,fnv10;
 	
 	uint16 dataaddr;
-	uint16 datalen;
 	
 	int i;
 

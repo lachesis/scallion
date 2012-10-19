@@ -135,7 +135,7 @@ namespace scallion
 				else if (extra.Count < 2) extra.Add("");
 			}
 
-			//_runtime.Run(ProgramParameters.Instance,"prefix[234567]");
+			//_runtime.Run(ProgramParameters.Instance,"prefix[abcdef]");
 			switch (parms.ProgramMode)
 			{
 				case Mode.Help:

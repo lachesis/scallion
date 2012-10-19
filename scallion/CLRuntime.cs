@@ -243,11 +243,12 @@ namespace scallion
 			//Create Hash Table
 			uint[] dataArray;
 			ushort[] hashTable;
+			int max_items_per_key = 0;
 			{
 				Func<uint[], ushort> fnv =
 					(pattern_arr) =>
 					{
-						uint f = Util.FNVHash(Util.Rotate5(pattern_arr[0]), pattern_arr[1], Util.Rotate5(pattern_arr[2]));
+						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
 						f = ((f >> 10) ^ f) & (uint)1023;
 						return (ushort)f;
 					};
@@ -257,6 +258,7 @@ namespace scallion
 					.GroupBy(i => i.Key)
 					.OrderBy(i => i.Key)
 					.ToList();
+
 				dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
 				hashTable = new ushort[1024]; //item 1 index, item 2 length
 				int currIndex = 0;
@@ -264,9 +266,11 @@ namespace scallion
 				{
 					int len = item.Count();
 					hashTable[item.Key] = (ushort)currIndex;
-					//hashTable[item.Key * 2 + 1] = (ushort)len;
 					currIndex += len;
+					if(len > max_items_per_key) max_items_per_key = len;
 				}
+
+				Console.WriteLine("Putting {0} patterns into {1} buckets.",currIndex,gpu_dict_list.Count);
 			}
 
 			// Set the key size
@@ -305,7 +309,7 @@ namespace scallion
 			}
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
-				KernelGenerator.GenerateKernel(parms,1,1)
+				KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length,max_items_per_key)
 			);
 
 			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
@@ -397,6 +401,7 @@ namespace scallion
 				bufLastWs.EnqueueWrite(true);
 				bufMidstates.EnqueueWrite(true);
 				bufExpIndexes.EnqueueWrite(true);
+				Array.Clear(bufResults.Data,0,bufResults.Data.Length);
 				bufResults.EnqueueWrite(true);
 				profiler.EndRegion("write buffers");
 
