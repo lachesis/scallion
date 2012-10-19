@@ -31,6 +31,7 @@ namespace scallion
 		public uint WorkGroupSize = 512;
 		public uint DeviceId = 0;
 		public uint KeySize = 1024;
+		public uint ResultsArraySize = 128;
 		public Mode ProgramMode = Mode.Normal;
 		public KernelType KernelType
 		{
@@ -59,6 +60,8 @@ namespace scallion
 				object value = field.GetValue(this);
 				if (value.GetType() == typeof(uint))
 					builder.AppendLine(string.Format("#define {0} {1}", field.Name, value));
+				if (value.GetType() == typeof(KernelType))
+					builder.AppendLine(string.Format("#define KT_{0}", value));
 			}
 			return builder.ToString();
 		}

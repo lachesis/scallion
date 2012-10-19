@@ -282,14 +282,14 @@ namespace scallion
 					kernelName = "normal";
 					break;
 				case KernelType.Optimized4_9:
-					if (keySize != 1024) throw new ArgumentException("Kernel {0} only works with keysize 1024.");
+					if (keySize != 1024) throw new ArgumentException("Kernel only works with keysize 1024.");
 					kernelFileName = "kernel.cl";
-					kernelName = "optimized4_9";
+					kernelName = "optimized";
 					break;
 				case KernelType.Optimized4_11:
-					if (keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel {0} only works with keysize 2048 or 4096.");
+					if (keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel only works with keysize 2048 or 4096.");
 					kernelFileName = "kernel.cl";
-					kernelName = "optimized4_11";
+					kernelName = "optimized";
 					break;
 				default:
 					throw new ArgumentException("Pick a supported kernel.");
@@ -305,9 +305,7 @@ namespace scallion
 			}
 			CLContext context = new CLContext(device.DeviceId);
 			IntPtr program = context.CreateAndCompileProgram(
-				System.IO.File.ReadAllText(
-					System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + System.IO.Path.DirectorySeparatorChar + kernelFileName
-				)
+				KernelGenerator.GenerateKernel(parms,1,1)
 			);
 
 			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
@@ -343,14 +341,14 @@ namespace scallion
 			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
 			kernel.SetKernelArg(0, bufLastWs);
 			kernel.SetKernelArg(1, bufMidstates);
-			kernel.SetKernelArg(2, bufExpIndexes);
-			kernel.SetKernelArg(3, bufResults);
-			kernel.SetKernelArg(4, (uint)EXP_MIN);
+			kernel.SetKernelArg(2, bufResults);
+			kernel.SetKernelArg(3, (uint)EXP_MIN);
 			kernel.SetKernelArg(5, (byte)get_der_len(EXP_MIN));
-			kernel.SetKernelArg(6, bufBitmasks);
-			kernel.SetKernelArg(7, bufBitmasks.Data.Length / 3);
-			kernel.SetKernelArg(8, bufHashTable);
-			kernel.SetKernelArg(9, bufDataArray);
+			kernel.SetKernelArg(2, bufExpIndexes);
+			kernel.SetKernelArg(4, bufBitmasks);
+			kernel.SetKernelArg(5, bufBitmasks.Data.Length / 3);
+			kernel.SetKernelArg(6, bufHashTable);
+			kernel.SetKernelArg(7, bufDataArray);
 			profiler.EndRegion("init");
 
 			bufBitmasks.EnqueueWrite(true);
@@ -393,7 +391,7 @@ namespace scallion
 				bufMidstates.Data = input.Midstates;
 				bufExpIndexes.Data = input.ExpIndexes;
 				bufResults.Data = input.Results;
-				kernel.SetKernelArg(4, input.BaseExp);
+				kernel.SetKernelArg(3, input.BaseExp);
 				profiler.EndRegion("set buffers");
 
 				profiler.StartRegion("write buffers");

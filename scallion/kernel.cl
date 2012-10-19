@@ -7,10 +7,25 @@
 #define uint64 ulong
 #define int64 long
 
+GENERATED__CONSTANTS
+
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
-#define fnv_hash(w1,w2,w3,b1,b2,b3) (uint)((((((OFFSET_BASIS ^ (w1 & b1)) * FNV_PRIME) ^ (w2 & b2)) * FNV_PRIME) ^ (w3 & b3)) * FNV_PRIME)
+#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ w1) * FNV_PRIME) ^ w2) * FNV_PRIME) ^ w3) * FNV_PRIME)
+
+#define ResultsArraySize 128
+#define KT_Optimized4_9
+
+#define BEGIN_MASK(i) \
+	fnv = fnv_hash(H[0] & BitmaskArray[i*3+0], H[1] & BitmaskArray[i*3+1], H[2] & BitmaskArray[i*3+2]); \
+	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
+	dataaddr = HashTable[fnv10*2]; \
+	datalen = HashTable[fnv10*2+1];
+
+#define CHECK_HASH(j) \
+	if(DataArray[dataaddr+j] == fnv) \
+		Results[get_local_id(0) % ResultsArraySize] = exp;
 
 inline uint32 andnot(uint32 a,uint32 b) { return a & ~b; }
 inline uint32 rotate1(uint32 a) { return (a << 1) | (a >> 31); }
@@ -364,56 +379,12 @@ void sha1_block(uint32 *in, uint32 *H)
 	H[4] = e;
 }
 
-// Turns out EXP_INDEX doesn't change between 2048 and 4096
-// Assumes that EXP_LEN = 4 and EXP_INDEX = 11
-// Therefore, only works with 2048 bit keys and 4 byte exponents.
-// Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
-// ExpIndexes and len_start are NOT used, just taken for easy compatability
-__kernel void optimized4_11(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
-						__constant uint32* Pattern, __constant uint32* Bitmask)
-{
-	uint64 exp;
-	uint32 i;
-
-	uint32 W[16];
-	uint32 H[5];
-
-	exp = get_global_id(0) * 2 + base_exp;
-	
-	// Load Ws and Midstates into private variables
-	for(i=0; i<16; i++) W[i] = LastWs[i];
-	for(i=0; i<5; i++) H[i] = Midstates[i];
-	
-	// Load the exponent into the W
-	
-	W[2] &= 0xFFFFFF00u;
-	W[2] |= exp >> 24 & 0x000000FFu;
-	W[3] &= 0x000000FFu;
-	W[3] |= exp << 8 & 0xFFFFFF00u;
-      
-    // Take the last part of the hash
-	sha1_block(W,H);
-	
-	// Compare the first 3 uints of the hash with the pattern
-	i = 0xFFFFFFFFu;
-	i &= ~(H[0] ^ Pattern[0]) | ~Bitmask[0];
-	i &= ~(H[1] ^ Pattern[1]) | ~Bitmask[1];
-	i &= ~(H[2] ^ Pattern[2]) | ~Bitmask[2];
-	
-	// Did we win!?
-	if(!~i)
-		Results[get_local_id(0) % 128] = exp;
-}
-
-#define BIT_TABLE_WORD_SIZE 32
-#define BIT_TABLE_LENGTH 0x20000000 // in bits
-
-// Assumes that EXP_LEN = 4 and EXP_INDEX = 9
-// Therefore, only works with 1024 bit keys and 4 byte exponents.
-// Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
-// ExpIndexes and len_start are NOT used, just taken for easy compatability
-__kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
-						__constant uint32* BitmaskArray, uint32 num_bitmasks, __constant uint16* HashTable, __constant uint32* DataArray)
+// Must set the right define for W packing code
+// Only works with certain sized keys (1024 and 2048/4096 tested) and 4 byte exponents.
+// Base_exp must be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
+__kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates, __global uint32* Results, uint32 BaseExp,
+						uint8 LenStart, __constant int32* ExpIndexes, 								// Not used - for compat.
+						__constant uint32* BitmaskArray, __constant uint16* HashTable, __constant uint32* DataArray)
 {
 	uint64 exp;
 	uint32 fnv,fnv10;
@@ -425,40 +396,38 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	uint32 W[16];
 	uint32 H[5];
 
-	exp = get_global_id(0) * 2 + base_exp;
+	exp = get_global_id(0) * 2 + BaseExp;
 	
 	// Load Ws and Midstates into private variables
 	for(i=0; i<16; i++) W[i] = LastWs[i];
 	for(i=0; i<5; i++) H[i] = Midstates[i];
 	
 	// Load the exponent into the W
+#if defined(KT_Optimized4_9)
 	W[2] &= 0xFF000000u;
 	W[2] |= exp >> 8 & 0x00FFFFFFu;
 	W[3] &= 0x00FFFFFFu;
 	W[3] |= exp << 24 & 0xFF000000u;
+#elif defined(KT_Optimized4_11)
+	W[2] &= 0xFFFFFF00u;
+	W[2] |= exp >> 24 & 0x000000FFu;
+	W[3] &= 0x000000FFu;
+	W[3] |= exp << 8 & 0xFFFFFF00u;
+#endif
       
     // Take the last part of the hash
 	sha1_block(W,H);
 	
 	// Get and check the FNV hash for each bitmask
-	for(i=0;i<num_bitmasks;i++) {
-		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]);
-		fnv10 = (fnv >> 10 ^ fnv) & 1023u; // collapse the FNV to 10-bits 
-		dataaddr = HashTable[fnv10*2];
-		datalen = HashTable[fnv10*2+1];
-		
-		for(j=0;j<datalen;j++) {
-			if(DataArray[dataaddr+j] == fnv) {
-				Results[get_local_id(0) % 128] = exp;
-			}
-		}
-	}
+	// Uses code generated on the C# side
+	GENERATED__CHECKING_CODE
 }
 
 // Works with any exp index and starting length
 // Still requires that all of the exponent lie in the last SHA1 block.
-__kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
-						__constant uint32* Pattern, __constant uint32* Bitmask)
+__kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __global uint32* Results, uint32 BaseExp,
+						uint8 LenStart, __constant int32* ExpIndexes,							
+						__constant uint32* BitmaskArray, __constant uint16* HashTable, __constant uint32* DataArray)
 {
 	uint64 exp;
 	int bytes_needed = 0;
@@ -473,7 +442,7 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
 	uint32 W[80];
 	uint32 H[5];
 
-	exp = get_global_id(0) * 2 + base_exp;
+	exp = get_global_id(0) * 2 + BaseExp;
 	newexp = exp;
 
 	// find number of bytes needed for exp
@@ -488,7 +457,7 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
         exp_bytes[bytes_needed++] = 0;
 
 	// Load Ws and Midstates into private variables
-	index = bytes_needed - len_start;
+	index = bytes_needed - LenStart;
 	for(i=0; i<16; i++)
 		W[i] = LastWs[index*16+i];
 	for(i=0; i<5; i++)
@@ -507,12 +476,7 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
     // Take the last part of the hash
 	sha1_block(W,H);
 	
-	// Compare the first 3 bits of the hash with the pattern
-	running_total = 0xFFFFFFFFu;
-	for(i=0;i<3;i++)
-		running_total &= ~(H[i] ^ Pattern[i]) | ~Bitmask[i];
-	
-	// Did we win!?
-	if((running_total&0xFFFFFFFF) == 0xFFFFFFFFu)
-		Results[get_global_id(0) % 128] = (uint32)exp;
+	// Get and check the FNV hash for each bitmask
+	// Uses code generated on the C# side
+	GENERATED__CHECKING_CODE
 }
