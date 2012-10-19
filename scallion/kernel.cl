@@ -411,14 +411,14 @@ __kernel void optimized4_11(__constant uint32* LastWs, __constant uint32* Midsta
 // Base_exp must therefore be >= 0x01000001 and global work size must be <= (0x7FFFFFFF-base_exp)/2
 // ExpIndexes and len_start are NOT used, just taken for easy compatability
 __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstates, __constant int32* ExpIndexes, __global uint32* Results, uint32 base_exp, uint8 len_start,
-						__constant uint32* BitmaskArray, uint32 num_bitmasks, __constant uint32* BitTable)
+						__constant uint32* BitmaskArray, uint32 num_bitmasks, __constant uint16* HashTable, __constant uint32* DataArray)
 {
 	uint64 exp;
-	uint32 fnv;
-	uint32 i;
+	uint32 fnv,fnv10;
+	uint32 i,j;
 	
-	uint32 bitloc;
-	uint32 wordloc;
+	uint16 dataaddr;
+	uint16 datalen;
 
 	uint32 W[16];
 	uint32 H[5];
@@ -441,31 +441,17 @@ __kernel void optimized4_9(__constant uint32* LastWs, __constant uint32* Midstat
 	// Get and check the FNV hash for each bitmask
 	for(i=0;i<num_bitmasks;i++) {
 		fnv = fnv_hash(H[0],H[1],H[2],BitmaskArray[i*3+0],BitmaskArray[i*3+1],BitmaskArray[i*3+2]);
-		fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
-		bitloc = fnv & 31;
-		wordloc = (uint)(fnv >> 5) & 0xffffff;
-		/*Results[0] = exp;
-		Results[1] = fnv;
-		Results[2] = H[0];
-		Results[3] = H[1];
-		Results[4] = H[2];*/
-		//Results[2] = BitmaskArray[2];
-		//Results[3] = num_bitmasks;
-		if(BitTable[wordloc] & (uint32)(1 << bitloc))
-			Results[get_local_id(0) % 128] = exp;
+		fnv10 = (fnv >> 10) ^ (fnv & 1023); // collapse the FNV to 10-bits 
+		dataaddr = HashTable[fnv10*2];
+		datalen = HashTable[fnv10*2+1];
+		
+		for(j=0;j<datalen;j++) {
+			if(DataArray[dataaddr+j] == fnv) {
+				Results[get_local_id(0) % 128] = exp;
+				return;
+			}		
+		}
 	}
-	
-	/*
-	// Compare the first 3 uints of the hash with the pattern
-	i = 0xFFFFFFFFu;
-	i &= ~(H[0] ^ Pattern[0]) | ~Bitmask[0];
-	i &= ~(H[1] ^ Pattern[1]) | ~Bitmask[1];
-	i &= ~(H[2] ^ Pattern[2]) | ~Bitmask[2];
-	
-	// Did we win!?
-	if(!~i)
-		Results[get_local_id(0) % 128] = exp;
-	*/
 }
 
 // Works with any exp index and starting length

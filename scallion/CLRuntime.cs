@@ -215,7 +215,7 @@ namespace scallion
 		private List<Thread> inputThreads = new List<Thread>();
 
 		const int MIN_CHARS = 7;
-		const uint BIT_TABLE_LENGTH = 0x20000000; // in bits
+		const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
 		const uint BIT_TABLE_WORD_SIZE = 32;
 
 		public void Run(ProgramParameters parms, string prefix)
@@ -251,9 +251,9 @@ namespace scallion
 
 				// FNV Hash the pattern ANDed with its bitmask
 				uint fnv = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
-				fnv = (fnv>>29) ^ (fnv & 0x1fffffff);
+				fnv = (fnv>>30) ^ (fnv & 0x2fffffff);
 				uint bitloc = fnv & 31;
-				uint wordloc = (uint)(fnv >> 5) & 0xffffff;
+				uint wordloc = (uint)(fnv >> 5) & 0x2fffffff;
 
 				Console.WriteLine("Pattern: {3}; FNVHash: 0x{0:x8}; bucket: 0x{1:x8}, bit {2}",fnv,wordloc,bitloc,pattern);
 
