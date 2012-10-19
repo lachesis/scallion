@@ -33,6 +33,7 @@ namespace scallion
 		public uint KeySize = 1024;
 		public uint ResultsArraySize = 128;
 		public Mode ProgramMode = Mode.Normal;
+        public string SaveGeneratedKernelPath = null;
 		public KernelType KernelType
 		{
 			get
@@ -126,7 +127,8 @@ namespace scallion
 				.Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
 				.Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
 				.Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
-				.Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i);
+				.Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
+				.Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i);
 				
 			List<string> extra = p.Parse(args);
 			if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)

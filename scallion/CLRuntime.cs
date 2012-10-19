@@ -243,6 +243,7 @@ namespace scallion
 			//Create Hash Table
 			uint[] dataArray;
 			ushort[] hashTable;
+            uint[][] all_patterns;
 			int max_items_per_key = 0;
 			{
 				Func<uint[], ushort> fnv =
@@ -252,8 +253,10 @@ namespace scallion
 						f = ((f >> 10) ^ f) & (uint)1023;
 						return (ushort)f;
 					};
-				var gpu_dict_list = rp.GenerateOnionPatternsForGpu(7)
+				all_patterns = rp.GenerateOnionPatternsForGpu(7)
 					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
+                    .ToArray();
+                var gpu_dict_list = all_patterns
 					.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0], i[1], i[2])))
 					.GroupBy(i => i.Key)
 					.OrderBy(i => i.Key)
@@ -308,9 +311,10 @@ namespace scallion
 				workGroupSize = (int)device.MaxWorkGroupSize;
 			}
 			CLContext context = new CLContext(device.DeviceId);
-			IntPtr program = context.CreateAndCompileProgram(
-				KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length,max_items_per_key)
-			);
+			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0]);
+            if(parms.SaveGeneratedKernelPath != null)
+                System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
+            IntPtr program = context.CreateAndCompileProgram(kernel_text);
 
 			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 
