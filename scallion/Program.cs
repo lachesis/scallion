@@ -111,7 +111,7 @@ namespace scallion
 		public static void Help(OptionSet p)
 		{
             Console.WriteLine("Usage: scallion [OPTIONS]+ regex [regex]+");
-            Console.WriteLine("Searches for a tor hidden service address that matches one of the provided regexs.");
+            Console.WriteLine("Searches for a tor hidden service address that matches one of the provided regexes.");
 			Console.WriteLine();
 			Console.WriteLine("Options:");
 			p.WriteOptionDescriptions(Console.Out);
