@@ -440,11 +440,21 @@ namespace scallion
 								Console.WriteLine();
 								Console.WriteLine("Ding!! Delicions scallions for you!!");
 								Console.WriteLine();
+
+								string key = input.Rsa.Rsa.PrivateKeyAsPEM;
+
+								if (parms.KeyOutputPath != null)
+								{
+									System.IO.File.AppendAllText(parms.KeyOutputPath,"Generated at: " + System.DateTime.Now.ToString("G") + "\n");
+									System.IO.File.AppendAllText(parms.KeyOutputPath,"Address/Hash: " + onion_hash + ".onion\n");
+									System.IO.File.AppendAllText(parms.KeyOutputPath,"RSA key: \n" + key + "\n\n");
+								}
+
 								Console.WriteLine("Exponent: {0}", result);
 								input.Rsa.ChangePublicExponent((BigNumber)result);
 								Console.WriteLine("Address/Hash: " + onion_hash + ".onion");
 								Console.WriteLine();
-								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+								Console.WriteLine(key);
 								Console.WriteLine();
                                 if (!parms.ContinueGeneration) success = true;
 							}

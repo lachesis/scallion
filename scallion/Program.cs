@@ -36,6 +36,7 @@ namespace scallion
         public string SaveGeneratedKernelPath = null;
         public bool ContinueGeneration = false;
         public string Regex = null;
+		public string KeyOutputPath = null;
 		public KernelType KernelType
 		{
 			get
@@ -129,6 +130,7 @@ namespace scallion
                 .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
                 .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
                 .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
+				.Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
                 .Add<bool>("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => parms.ContinueGeneration = i)
                 ;
                 
