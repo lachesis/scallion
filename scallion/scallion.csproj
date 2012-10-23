@@ -66,6 +66,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>CLDeviceInfo.tt</DependentUpon>
     </Compile>
+    <Compile Include="KernelGenerator.cs" />
+    <Compile Include="RegexPattern.cs" />
     <Compile Include="ObjectDumper.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
@@ -76,6 +78,7 @@
     <Compile Include="TorBase32.cs" />
     <Compile Include="CLRuntime.cs" />
     <Compile Include="Profiler.cs" />
+    <Compile Include="Util.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">

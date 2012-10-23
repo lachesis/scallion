@@ -7,19 +7,79 @@ using System.Runtime.InteropServices;
 using OpenSSL.Crypto;
 using OpenSSL.Core;
 using Mono.Options;
+using System.Reflection;
 
 namespace scallion
 {
+	public enum Mode
+	{
+		Normal,
+		NonOptimized,
+		Help,
+		ListDevices
+	}
+
+	public class ProgramParameters
+	{
+		private static ProgramParameters _instance = new ProgramParameters();
+		public static ProgramParameters Instance
+		{
+			get { return _instance; }
+		}
+		public uint CpuThreads = 1;
+		public uint WorkSize = 1024 * 1024 * 16;
+		public uint WorkGroupSize = 512;
+		public uint DeviceId = 0;
+		public uint KeySize = 1024;
+		public uint ResultsArraySize = 128;
+		public Mode ProgramMode = Mode.Normal;
+        public string SaveGeneratedKernelPath = null;
+        public bool ContinueGeneration = false;
+        public string Regex = null;
+		public string KeyOutputPath = null;
+		public KernelType KernelType
+		{
+			get
+			{
+				if (ProgramMode == Mode.NonOptimized) 
+					return KernelType.Normal;
+				switch (KeySize)
+				{
+					case 4096:
+					case 2048:
+						return KernelType.Optimized4_11;
+					case 1024:
+						return KernelType.Optimized4_9;
+				}
+				throw new System.NotImplementedException();
+			}
+		}
+		public string CreateDefinesString()
+		{
+			StringBuilder builder = new StringBuilder();
+			var fields = this.GetType()
+				.GetFields(BindingFlags.Public | BindingFlags.Instance)
+				.Cast<object>()
+				.Concat(this.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance).Cast<object>());
+			foreach (var field in fields)
+			{
+				KeyValuePair<string, object> value = new KeyValuePair<string, object>();
+				if (field as FieldInfo != null)
+					value = new KeyValuePair<string, object>(((FieldInfo)field).Name, ((FieldInfo)field).GetValue(this));
+				else if (field as PropertyInfo != null)
+					value = new KeyValuePair<string, object>(((PropertyInfo)field).Name, ((PropertyInfo)field).GetValue(this, null));
+                if (value.Value == null) continue;
+                if (value.Value.GetType() == typeof(uint))
+					builder.AppendLine(string.Format("#define {0} {1}", value.Key, value.Value));
+				if (value.Value.GetType() == typeof(KernelType))
+					builder.AppendLine(string.Format("#define KT_{0}", value.Value));
+			}
+			return builder.ToString();
+		}
+	}
+
 	class Program
 	{
-		enum Mode
-		{
-			Normal,
-			NonOptimized,
-			Help,
-			ListDevices
-		}
-
 		public static void ListDevices()
 		{
 			int deviceId = 0;
@@ -42,14 +102,16 @@ namespace scallion
 					deviceId, device.Name.Trim());
 				Console.WriteLine("    PreferredGroupSizeMultiple:{0} ComputeUnits:{1} ClockFrequency:{2}",
 					preferredWorkGroupSize, device.MaxComputeUnits, device.MaxClockFrequency);
+				Console.WriteLine("    MaxConstantBufferSize:{0} MaxConstantArgs:{1} MaxMemAllocSize:{2}",
+				    device.MaxConstantBufferSize, device.MaxConstantArgs, device.MaxMemAllocSize);
 				Console.WriteLine("");
 				deviceId++;
 			}
 		}
 		public static void Help(OptionSet p)
 		{
-			Console.WriteLine("Usage: scallion [OPTIONS]+ prefix suffix");
-			Console.WriteLine("Searches for a tor hidden service address that starts with the provided prefix and ends with the provided suffix.");
+            Console.WriteLine("Usage: scallion [OPTIONS]+ regex [regex]+");
+            Console.WriteLine("Searches for a tor hidden service address that matches one of the provided regexes.");
 			Console.WriteLine();
 			Console.WriteLine("Options:");
 			p.WriteOptionDescriptions(Console.Out);
@@ -57,30 +119,31 @@ namespace scallion
 		static CLRuntime _runtime = new CLRuntime();
 		static void Main(string[] args)
 		{
-			Mode mode = Mode.Normal;
-			int deviceId = 0;
-			int workGroupSize = 512;
-			int workSize = 1024 * 1024 * 16;
-			int keySize = 1024;
-			int numThreadsCreateWork = 1;
-			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { mode = m; } };
-			OptionSet p = new OptionSet()
-				.Add<int>("k|keysize=", "Specify keysize for the RSA key", (i) => keySize = i)
-				.Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
-				.Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
-				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
-				.Add<int>("d|device=", "Specify the opencl device that should be used.", (i) => deviceId = i)
-				.Add<int>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => workGroupSize = i)
-				.Add<int>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => workSize = i)
-					.Add<int>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => numThreadsCreateWork = i);
+			ProgramParameters parms = ProgramParameters.Instance;
+			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
+            OptionSet p = new OptionSet()
+                .Add<uint>("k|keysize=", "Specify keysize for the RSA key", (i) => parms.KeySize = i)
+                .Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
+                .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
+                .Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
+                .Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
+                .Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+                .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
+                .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
+                .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
+				.Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
+                .Add("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
+                ;
+                
 			List<string> extra = p.Parse(args);
-			if (mode == Mode.NonOptimized || mode == Mode.Normal)
+			if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
 			{
-				if (extra.Count < 1) mode = Mode.Help;
-				else if (extra.Count < 2) extra.Add("");
+				if (extra.Count < 1) parms.ProgramMode = Mode.Help;
+                else parms.Regex = extra.ToDelimitedString("|");
 			}
 
-			switch (mode)
+			//_runtime.Run(ProgramParameters.Instance,"prefix[abcdef]");
+			switch (parms.ProgramMode)
 			{
 				case Mode.Help:
 					Help(p);
@@ -89,28 +152,10 @@ namespace scallion
 					ListDevices();
 					break;
 				case Mode.Normal:
-					{
-						KernelType kt;
-						switch (keySize) {
-							case 4096:
-							case 2048:
-								kt = KernelType.Optimized4_11;
-								break;
-							case 1024:
-								kt = KernelType.Optimized4_9;
-								break;
-							default:
-								kt = KernelType.Normal;
-								break;
-						}
-						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, kt, keySize, extra[0], extra[1]);
-					}
-					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(deviceId, workGroupSize, workSize, numThreadsCreateWork, KernelType.Normal, keySize, extra[0], extra[1]);
+						_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 			}
