@@ -69,7 +69,7 @@ Generate a hash
 
 Multipattern Hashing
 --------------------
-Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. [abcd]) are supported. The "." character represents any character. Onion addresses are always 16 characters long, so a suffix can be found by prepending the correct number of dots. Finally, the pipe syntax (ex. "prefix|pattern") can be used. Adding more patterns (within reason) will NOT produce a significant decrease in speed because the internal implementation has a constant time lookup. 
+Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. [abcd]) are supported. The "." character represents any character. Onion addresses are always 16 characters long, so a suffix can be found by prepending the correct number of dots. Finally, the pipe syntax (ex. "prefix|pattern") can be used. Adding more patterns (within reason) will NOT produce a significant decrease in speed because the internal implementation has a constant time lookup. Using multiple patterns may produce an ~8% decline in total hash speed, but many regexps will produce a single pattern on the GPU.
  
 Some use cases with examples:
 - Generate a prefix followed by a number for better readability:
