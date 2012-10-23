@@ -216,7 +216,7 @@ namespace scallion
 		const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
 		const uint BIT_TABLE_WORD_SIZE = 32;
 
-		public void Run(ProgramParameters parms, string prefix)
+		public void Run(ProgramParameters parms)
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
 			int deviceId = (int)parms.DeviceId;
@@ -225,7 +225,6 @@ namespace scallion
 			int numThreadsCreateWork = (int)parms.CpuThreads;
 			KernelType kernelt = parms.KernelType;
 			int keysize = (int)parms.KeySize;
-			IEnumerable<string> patterns = new string[] { prefix };
 
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;
@@ -234,7 +233,7 @@ namespace scallion
 			profiler.StartRegion("init");
 
 			// Combine patterns into a single regexp and build one of Richard's objects
-			var rp = new RegexPattern(String.Join("|", patterns.ToArray()));
+            var rp = new RegexPattern(parms.Regex);
 
 			// Create bitmasks array for the GPU
 			var gpu_bitmasks = rp.GenerateOnionPatternBitmasksForGpu(MIN_CHARS)
@@ -447,7 +446,7 @@ namespace scallion
 								Console.WriteLine();
 								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
 								Console.WriteLine();
-								success = true;
+                                if (!parms.ContinueGeneration) success = true;
 							}
 						}
 						catch (OpenSslException /*ex*/) { }

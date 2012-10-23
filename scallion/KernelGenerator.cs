@@ -26,7 +26,7 @@ namespace scallion
 		{
 			StringBuilder builder = new StringBuilder();
 			
-            if(0 && numberOfMasks == 1 && numberOfHashesPerKey == 1)
+            if(false && numberOfMasks == 1 && numberOfHashesPerKey == 1)
             {
                 builder.AppendLine("if(((H[0] & {0}) == {1}) && ((H[1] & {2}) == {3}) && ((H[2] & {4}) == {5}))",
                     Bitmask[0],Pattern[0], Bitmask[1],Pattern[1], Bitmask[2],Pattern[2] );

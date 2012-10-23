@@ -34,6 +34,8 @@ namespace scallion
 		public uint ResultsArraySize = 128;
 		public Mode ProgramMode = Mode.Normal;
         public string SaveGeneratedKernelPath = null;
+        public bool ContinueGeneration = false;
+        public string Regex = null;
 		public KernelType KernelType
 		{
 			get
@@ -76,8 +78,6 @@ namespace scallion
 
 	class Program
 	{
-
-
 		public static void ListDevices()
 		{
 			int deviceId = 0;
@@ -119,22 +119,24 @@ namespace scallion
 		{
 			ProgramParameters parms = ProgramParameters.Instance;
 			Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
-			OptionSet p = new OptionSet()
-				.Add<uint>("k|keysize=", "Specify keysize for the RSA key", (i) => parms.KeySize = i)
-				.Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
-				.Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
-				.Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
-				.Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
-				.Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
-				.Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
-				.Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
-				.Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i);
-				
+            OptionSet p = new OptionSet()
+                .Add<uint>("k|keysize=", "Specify keysize for the RSA key", (i) => parms.KeySize = i)
+                .Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
+                .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
+                .Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
+                .Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
+                .Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+                .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
+                .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
+                .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
+                .Add<bool>("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => parms.ContinueGeneration = i)
+                ;
+                
 			List<string> extra = p.Parse(args);
 			if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
 			{
 				if (extra.Count < 1) parms.ProgramMode = Mode.Help;
-				else if (extra.Count < 2) extra.Add("");
+                else parms.Regex = extra.ToDelimitedString("|");
 			}
 
 			//_runtime.Run(ProgramParameters.Instance,"prefix[abcdef]");
@@ -147,15 +149,10 @@ namespace scallion
 					ListDevices();
 					break;
 				case Mode.Normal:
-					{
-						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(ProgramParameters.Instance,extra[0]);
-					}
-					break;
 				case Mode.NonOptimized:
 					{
 						Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						_runtime.Run(ProgramParameters.Instance,extra[0]);
+						_runtime.Run(ProgramParameters.Instance);
 					}
 					break;
 			}
