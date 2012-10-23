@@ -68,7 +68,8 @@ namespace scallion
 					value = new KeyValuePair<string, object>(((FieldInfo)field).Name, ((FieldInfo)field).GetValue(this));
 				else if (field as PropertyInfo != null)
 					value = new KeyValuePair<string, object>(((PropertyInfo)field).Name, ((PropertyInfo)field).GetValue(this, null));
-				if (value.Value.GetType() == typeof(uint))
+                if (value.Value == null) continue;
+                if (value.Value.GetType() == typeof(uint))
 					builder.AppendLine(string.Format("#define {0} {1}", value.Key, value.Value));
 				if (value.Value.GetType() == typeof(KernelType))
 					builder.AppendLine(string.Format("#define KT_{0}", value.Value));
@@ -109,8 +110,8 @@ namespace scallion
 		}
 		public static void Help(OptionSet p)
 		{
-			Console.WriteLine("Usage: scallion [OPTIONS]+ prefix suffix");
-			Console.WriteLine("Searches for a tor hidden service address that starts with the provided prefix and ends with the provided suffix.");
+            Console.WriteLine("Usage: scallion [OPTIONS]+ regex [regex]+");
+            Console.WriteLine("Searches for a tor hidden service address that matches one of the provided regexs.");
 			Console.WriteLine();
 			Console.WriteLine("Options:");
 			p.WriteOptionDescriptions(Console.Out);
@@ -131,7 +132,7 @@ namespace scallion
                 .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
                 .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
 				.Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
-                .Add<bool>("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => parms.ContinueGeneration = i)
+                .Add("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
                 ;
                 
 			List<string> extra = p.Parse(args);
