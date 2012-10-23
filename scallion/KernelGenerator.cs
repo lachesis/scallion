@@ -30,9 +30,9 @@ namespace scallion
 			// instead of using the hashtable (about 8% faster)
             if(numberOfMasks == 1 && numberOfHashesPerKey == 1)
             {
-                builder.AppendLine("if(((H[0] & {0}) == {1}) && ((H[1] & {2}) == {3}) && ((H[2] & {4}) == {5}))",
+                builder.AppendLine("if(((H[0] & {0}u) == {1}u) && ((H[1] & {2}u) == {3}u) && ((H[2] & {4}u) == {5}u))",
                     Bitmask[0],Pattern[0], Bitmask[1],Pattern[1], Bitmask[2],Pattern[2] );
-                builder.AppendLine("    Results[get_local_id(0) % ResultsArraySize] = exp;");
+                builder.AppendLine("        Results[get_local_id(0) % ResultsArraySize] = exp;");
             }
             else
             {
