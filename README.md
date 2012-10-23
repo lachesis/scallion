@@ -67,6 +67,23 @@ Generate a hash
 
     88.99 million hashes per second
 
+Multipattern Hashing
+--------------------
+Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. [abcd]) are supported. The "." character represents any character. Onion addresses are always 16 characters long, so a suffix can be found by prepending the correct number of dots. Finally, the pipe syntax (ex. "prefix|pattern") can be used. Adding more patterns (within reason) will NOT produce a significant decrease in speed because the internal implementation has a constant time lookup. 
+ 
+Some use cases with examples:
+- Generate a prefix followed by a number for better readability:
+   
+    mono scallion.exe prefix[234567]
+
+- Search for several patterns at once (n.b. -c causes scallion to continue generating even once it gets a hit)
+    
+    mono scallion.exe -c prefix scallion hashes
+
+- Search for a suffix
+   
+   mono scallion.exe ..........suffix
+
 Speed
 -----
 On my nVidia Quadro K2000M, I see around 90 MH/s. With those speeds, I can generate a six character prefix in about six seconds on average. An eight character prefix would take about 1h 45m. To calculate the number of seconds required for a given prefix (on average), use this formula:

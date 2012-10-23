@@ -25,7 +25,10 @@ namespace scallion
 		private static string GenerateCheckingCode(int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern)
 		{
 			StringBuilder builder = new StringBuilder();
-			
+
+			// Purposely disabled - only a 1% speedup. Feel free to reenable - should work.
+			// Makes the checking code do a simple 3-word check for a single pattern
+			// Instead of using the hashtable
             if(false && numberOfMasks == 1 && numberOfHashesPerKey == 1)
             {
                 builder.AppendLine("if(((H[0] & {0}) == {1}) && ((H[1] & {2}) == {3}) && ((H[2] & {4}) == {5}))",
