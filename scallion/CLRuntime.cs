@@ -313,7 +313,7 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 
 			Console.Write("Compiling kernel... ");
-			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0]);
+			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);

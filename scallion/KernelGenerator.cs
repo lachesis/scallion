@@ -9,7 +9,7 @@ namespace scallion
 {
 	public class KernelGenerator
 	{
-		public static string GenerateKernel(ProgramParameters programParameters, int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern)
+		public static string GenerateKernel(ProgramParameters programParameters, int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern, int numberOfPatterns)
 		{
 			//Read kernel.cl
 			StringBuilder builder = new StringBuilder();
@@ -18,17 +18,17 @@ namespace scallion
 			//Replace program parms
 			builder.Replace("GENERATED__CONSTANTS", programParameters.CreateDefinesString());
 			//replace checking code
-			builder.Replace("GENERATED__CHECKING_CODE", GenerateCheckingCode(numberOfMasks, numberOfHashesPerKey, Bitmask, Pattern));
+			builder.Replace("GENERATED__CHECKING_CODE", GenerateCheckingCode(numberOfMasks, numberOfHashesPerKey, Bitmask, Pattern, numberOfPatterns));
 			//Return generated kernel
 			return builder.ToString();
 		}
-		private static string GenerateCheckingCode(int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern)
+		private static string GenerateCheckingCode(int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern, int numberOfPatterns)
 		{
 			StringBuilder builder = new StringBuilder();
 
 			// Makes the checking code do a simple 3-word check for a single pattern
 			// instead of using the hashtable (about 8% faster)
-            if(numberOfMasks == 1 && numberOfHashesPerKey == 1)
+            if(numberOfMasks == 1 && numberOfHashesPerKey == 1 && numberOfPatterns == 1)
             {
                 builder.AppendLine("if(((H[0] & {0}u) == {1}u) && ((H[1] & {2}u) == {3}u) && ((H[2] & {4}u) == {5}u))",
                     Bitmask[0],Pattern[0], Bitmask[1],Pattern[1], Bitmask[2],Pattern[2] );
