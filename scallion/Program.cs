@@ -184,7 +184,7 @@ namespace scallion
                                 deviceId++;
                             }
 
-                            parms.WorkGroupSize = Convert.ToUInt32(preferredWorkGroupSize);
+                            parms.WorkGroupSize = (uint)preferredWorkGroupSize;
                         }
 
                         Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);

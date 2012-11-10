@@ -7,3 +7,6 @@ obj
 
 # mstest test results
 TestResults
+/opentk/Binaries/OpenTK/Debug/OpenTK.xml
+/opentk/Binaries/OpenTK/Release/OpenTK.xml
+/opentk/Source/OpenTK/OpenTK.xml
