@@ -19,8 +19,8 @@ Build Linux
 
 Build Windows
 -------------
-1. Open 'scallion.sln' in Visual Studio 2010 (Express should work; not tested)
-2. Build the solution
+1. Open 'scallion.sln' in VS Express for Desktop 2012
+2. Build the solution, I did everything in debug mode.
 
 Usage
 -----
@@ -69,7 +69,7 @@ Generate a hash
 
 Multipattern Hashing
 --------------------
-Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. [abcd]) are supported. The "." character represents any character. Onion addresses are always 16 characters long, so a suffix can be found by prepending the correct number of dots. Finally, the pipe syntax (ex. "prefix|pattern") can be used. Adding more patterns (within reason) will NOT produce a significant decrease in speed because the internal implementation has a constant time lookup. Using multiple patterns may produce an ~8% decline in total hash speed, but many regexps will produce a single pattern on the GPU.
+Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. [abcd]) are supported. The "." character represents any character. Onion addresses are always 16 characters long, so a suffix can be found by prepending the correct number of dots.  You can also find a suffix by putting a $ at the end of the match. Finally, the pipe syntax (ex. "prefix|pattern") can be used. Adding more patterns (within reason) will NOT produce a significant decrease in speed because the internal implementation has a constant time lookup. Using multiple patterns may produce an ~8% decline in total hash speed, but many regexps will produce a single pattern on the GPU.
  
 Some use cases with examples:
 - Generate a prefix followed by a number for better readability:
@@ -83,6 +83,11 @@ Some use cases with examples:
 - Search for a suffix
    
    mono scallion.exe ..........suffix
+   
+   mono scallion.exe suffix$
+   
+   mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
+
 
 Speed
 -----
@@ -91,6 +96,18 @@ On my nVidia Quadro K2000M, I see around 90 MH/s. With those speeds, I can gener
     seconds = 2^(5*length-1) / hashspeed 
  
 My friend's AMD Radeon HD6850 gets 600 MH/s. That's a 300x speedup over shallot. With that speed, he can find an eight character prefix in just 15 minutes on average.
+
+On a NVIDIA GTS 250, I get about 126-129 MH/s with a single-pattern match and about 101-119 MH/s with multi-pattern match.  With shallot I got about 500kH/s.
+
+kH/s = thousand hashes per second.
+
+MH/s = million hashes per second.
+
+
+Workgroups
+--------
+This will use your devices reported preferred work group size by default.  This is the most compatiable way for it to run, but you should experiment with the numbers to try to get the highest as possible for increased performance.
+
 
 Security
 --------
