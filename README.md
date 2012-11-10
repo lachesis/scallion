@@ -83,8 +83,11 @@ Some use cases with examples:
 - Search for a suffix
    
    mono scallion.exe ..........suffix
+   
    mono scallion.exe suffix$
-   mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$"
+   
+   mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
+
 
 Speed
 -----
@@ -97,6 +100,7 @@ My friend's AMD Radeon HD6850 gets 600 MH/s. That's a 300x speedup over shallot.
 On a NVIDIA GTS 250, I get about 126-129 MH/s with a single-pattern match and about 101-119 MH/s with multi-pattern match.  With shallot I got about 500kH/s.
 
 kH/s = thousand hashes per second.
+
 MH/s = million hashes per second.
 
 Security
