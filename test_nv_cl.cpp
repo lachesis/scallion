@@ -22,6 +22,8 @@ cout << "Found " << num_platforms << " platforms." << endl;
 
 clGetPlatformInfo(platform, CL_PLATFORM_NAME, 256, info, 0); 
 cout << "Platform name: " << info << endl; 
+clGetPlatformInfo(platform, CL_PLATFORM_VERSION, 256, info, 0);
+cout << "OpenCL Version: " << info << endl;
 
 clGetDeviceIDs(platform, CL_DEVICE_TYPE_ALL, 2, devices, &num_devices); 
 cout << "Found " << num_devices << " devices." << endl; 
