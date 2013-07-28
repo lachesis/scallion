@@ -132,17 +132,17 @@ namespace scallion
             ProgramParameters parms = ProgramParameters.Instance;
             Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
             OptionSet p = new OptionSet()
-                .Add<uint>("k|keysize=", "Specify keysize for the RSA key", (i) => parms.KeySize = i)
-                .Add("n|nonoptimized", "Run non-optimized kernel", parseMode(Mode.NonOptimized))
+                .Add<uint>("k|keysize=", "Specifies keysize for the RSA key", (i) => parms.KeySize = i)
+                .Add("n|nonoptimized", "Runs non-optimized kernel", parseMode(Mode.NonOptimized))
                 .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
-                .Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
-                .Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
-                .Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+                .Add("h|?|help", "Displays command line usage help.", parseMode(Mode.Help))
+                .Add<uint>("d|device=", "Specifies the opencl device that should be used.", (i) => parms.DeviceId = i)
+                .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
                 .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
                 .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
                 .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
                 .Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
-                .Add("c|continue", "When a key is found the program will continue to search for keys rather than exiting.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
+                .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
                 ;
 
 
@@ -198,7 +198,7 @@ namespace scallion
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             Console.WriteLine();
-            Console.WriteLine("No delicions scallions for you!!");
+            Console.WriteLine("No delicious scallions for you!!");
             Console.WriteLine("Stopping the GPU and shutting down...");
             Console.WriteLine();
             lock (_runtime) { _runtime.Abort = true; }
