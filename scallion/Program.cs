@@ -137,7 +137,7 @@ namespace scallion
                 .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
                 .Add("h|?|help", "Display command line usage help.", parseMode(Mode.Help))
                 .Add<uint>("d|device=", "Specify the opencl device that should be used.", (i) => parms.DeviceId = i)
-                .Add<uint>("g|groupsize=", "Specifics the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+                .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
                 .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
                 .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
                 .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
@@ -198,7 +198,7 @@ namespace scallion
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
             Console.WriteLine();
-            Console.WriteLine("No delicions scallions for you!!");
+            Console.WriteLine("No delicious scallions for you!!");
             Console.WriteLine("Stopping the GPU and shutting down...");
             Console.WriteLine();
             lock (_runtime) { _runtime.Abort = true; }
