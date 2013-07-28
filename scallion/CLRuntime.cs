@@ -442,7 +442,7 @@ namespace scallion
 							if (rp.DoesOnionHashMatchPattern(onion_hash))
 							{
 								Console.WriteLine();
-								Console.WriteLine("Ding!! Delicions scallions for you!!");
+								Console.WriteLine("Ding!! Delicious scallions for you!!");
 								Console.WriteLine();
 
 								string key = input.Rsa.Rsa.PrivateKeyAsPEM;
