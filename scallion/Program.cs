@@ -88,7 +88,7 @@ namespace scallion
             ulong preferredWorkGroupSize;
             {
                 CLContext context = new CLContext(deviceId);
-                IntPtr program = context.CreateAndCompileProgram(@"__kernel void get_size() { }");
+                IntPtr program = context.CreateAndCompileProgram(@"__kernel void get_size(__global float2 *in) { }");
                 CLKernel kernel = context.CreateKernel(program, "get_size");
                 preferredWorkGroupSize = kernel.KernelPreferredWorkGroupSizeMultiple;
                 kernel.Dispose();
