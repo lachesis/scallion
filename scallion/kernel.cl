@@ -7,6 +7,8 @@
 #define uint64 ulong
 #define int64 long
 
+#define SAFESHA
+
 GENERATED__CONSTANTS
 
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
@@ -23,6 +25,7 @@ GENERATED__CONSTANTS
 	if(DataArray[dataaddr+j] == fnv) \
 		Results[get_local_id(0) % ResultsArraySize] = exp;
 
+#ifdef FASTSHA
 inline uint32 andnot(uint32 a,uint32 b) { return a & ~b; }
 inline uint32 rotate1(uint32 a) { return (a << 1) | (a >> 31); }
 inline uint32 rotate5(uint32 a) { return (a << 5) | (a >> 27); }
@@ -374,6 +377,85 @@ void sha1_block(uint32 *in, uint32 *H)
 	H[3] = d;
 	H[4] = e;
 }
+#endif
+
+#ifdef SAFESHA
+uint rotateLeft(uint32 x, int32 n)
+{
+    return  (x << n) | (x >> (32-n));
+}
+
+// block size: 512b = 64B = 16W
+// W (80W long) is the 16W of work + scratch space (prepadded)
+// H (5W long) is the current hash state
+void sha1_block(uint32 *W, uint32 *H)
+{
+        uint32 A,B,C,D,E,K0,K1,K2,K3,temp; 
+        int i;
+    
+        K0 = 0x5A827999;
+        K1 = 0x6ED9EBA1;
+        K2 = 0x8F1BBCDC;
+        K3 = 0xCA62C1D6;
+
+        A = H[0];
+        B = H[1];
+        C = H[2];
+        D = H[3];
+        E = H[4];
+
+        for(i = 16; i < 80; i++)
+        {
+            W[i] = rotateLeft(W[i-3] ^ W[i-8] ^ W[i-14] ^ W[i-16], 1);
+        }
+
+        for(i = 0; i < 20; i++)
+        {
+            temp = rotateLeft(A,5) + ((B & C) | ((~ B) & D)) + E + W[i] + K0;
+            E = D;
+            D = C;
+            C = rotateLeft(B, 30);
+            B = A;
+            A = temp;
+        }
+
+        for(i = 20; i < 40; i++)
+        {
+            temp = rotateLeft(A, 5) + (B ^ C ^ D) + E + W[i] + K1;
+            E = D;
+            D = C;
+            C = rotateLeft(B, 30);
+            B = A;
+            A = temp;
+        }
+
+        for(i = 40; i < 60; i++)
+        {
+            temp = rotateLeft(A, 5) + ((B & C) | (B & D) | (C & D)) + E + W[i] + K2;
+            E = D;
+            D = C;
+            C = rotateLeft(B, 30);
+            B = A;
+            A = temp;
+        }
+
+        for(i = 60; i < 80; i++)
+        {
+            temp = rotateLeft(A, 5) + (B ^ C ^ D)  + E + W[i] + K3;
+            E = D;
+            D = C;
+            C = rotateLeft(B, 30);
+            B = A;
+            A = temp;
+        }
+
+        H[0] = (H[0] + A);
+        H[1] = (H[1] + B);
+        H[2] = (H[2] + C);
+        H[3] = (H[3] + D);
+        H[4] = (H[4] + E);
+}
+#endif
 
 // Must set the right define for W packing code
 // Only works with certain sized keys (1024 and 2048/4096 tested) and 4 byte exponents.
@@ -481,4 +563,46 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
 	// Uses code generated on the C# side
 	GENERATED__CHECKING_CODE
 
+}
+
+// Test the SHA hash code
+__kernel void shaTest(__global uint32* success)
+{
+    int i;
+    uint32 W[80];
+    uint32 H[5];
+
+    // Zero out W
+    for(i=0;i<80;i++) {
+        W[i] = 0;
+    }
+
+    // Init the SHA state
+    H[0] = 0x67452301;
+    H[1] = 0xEFCDAB89;
+    H[2] = 0x98BADCFE;
+    H[3] = 0x10325476;
+    H[4] = 0xC3D2E1F0;
+
+    // Load our (pre-padded) test block: "Hello world!"
+    W[0] = 0x48656c6cu;
+    W[1] = 0x6f20776fu;
+    W[2] = 0x726c6421u;
+    W[3] = 0x80000000u;
+    W[15] = 0x00000070u;
+
+    // Take the SHA
+    sha1_block(W, H);
+
+    // Check for success
+    *success = 0;
+    if (H[0] == 0xd3486ae9 && H[1] == 0x136e7856 && H[2] == 0xbc422123 && H[3] == 0x85ea7970 && H[4] == 0x94475802) {
+        *success = 1;
+    }
+
+    success[0] = H[0];
+    success[1] = H[1];
+    success[2] = H[2];
+    success[3] = H[3];
+    success[4] = H[4];
 }

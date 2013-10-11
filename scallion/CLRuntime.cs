@@ -321,6 +321,23 @@ namespace scallion
 			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 			Console.WriteLine("done.");
 
+            //
+            // Test SHA1 algo
+            // 
+            {
+                Console.WriteLine("Testing SHA1 hash...");
+
+                CLKernel shaTestKern = context.CreateKernel(program, "shaTest");
+                CLBuffer<uint> bufSuccess = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, new uint[5]);
+                shaTestKern.SetKernelArg(0, bufSuccess);
+
+				shaTestKern.EnqueueNDRangeKernel(workSize, workGroupSize);
+
+				bufSuccess.EnqueueRead(false);
+
+                Console.WriteLine("Output: {0} {1} {2} {3} {4}", bufSuccess.Data[0], bufSuccess.Data[1], bufSuccess.Data[2], bufSuccess.Data[3], bufSuccess.Data[4]); 
+            }
+
 			CLKernel kernel = context.CreateKernel(program, kernelName);
 			//Create buffers
 			CLBuffer<uint> bufLastWs;
