@@ -13,6 +13,10 @@ Dependancies
 - OpenCL and relevant drivers installed and configured. Refer to your distribution's documentation.
 - OpenSSL. For Windows, the prebuilt x86 DLLs are included
 
+Binary Download
+---------------
+Just want a binary version? Grab it [here](https://github.com/lachesis/scallion/blob/binaries/scallion-v1.1.zip?raw=true).
+
 Build Linux
 -----------
     xbuild scallion.sln
