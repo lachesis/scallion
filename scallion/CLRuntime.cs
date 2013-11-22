@@ -47,6 +47,37 @@ namespace scallion
 			return len;
 		}
 
+		public static void OutputKey(RSAWrapper rsa)
+		{
+			ProgramParameters parms = ProgramParameters.Instance;
+
+			Console.WriteLine();
+			Console.WriteLine("Ding!! Delicious scallions for you!!");
+			Console.WriteLine();
+
+			if (parms.KeyOutputPath != null)
+			{
+				System.IO.File.AppendAllText(parms.KeyOutputPath,"Generated at: " + System.DateTime.Now.ToString("G") + "\n");
+				System.IO.File.AppendAllText(parms.KeyOutputPath,"Address/Hash: " + rsa.OnionHash + ".onion\n");
+				System.IO.File.AppendAllText(parms.KeyOutputPath,"Public Modulus: " + rsa.Rsa.PublicModulus.ToDecimalString() + "\n");
+				System.IO.File.AppendAllText(parms.KeyOutputPath,"Public Exponent: " + rsa.Rsa.PublicExponent.ToDecimalString() + "\n");
+				if (rsa.HasPrivateKey) {
+					System.IO.File.AppendAllText(parms.KeyOutputPath,"RSA key: \n" + rsa.Rsa.PrivateKeyAsPEM + "\n");
+				}
+				System.IO.File.AppendAllText(parms.KeyOutputPath, "\n\n");
+			}
+
+			Console.WriteLine("Public Modulus:  {0}", rsa.Rsa.PublicModulus.ToDecimalString());
+			Console.WriteLine("Public Exponent: {0}", rsa.Rsa.PublicExponent.ToDecimalString());
+			Console.WriteLine("Address/Hash: " + rsa.OnionHash + ".onion");
+
+			Console.WriteLine();
+			if (rsa.HasPrivateKey) {
+				Console.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
+				Console.WriteLine();
+			}
+		}
+
 		public class RandomList<T>
 		{
 			private System.Random _rnd = new System.Random(); 
@@ -95,12 +126,14 @@ namespace scallion
 			public readonly uint[] Results;
 			public readonly uint BaseExp;
 		}
-		const uint EXP_MIN = 0x01010001;
-		const uint EXP_MAX = 0x7FFFFFFF;
+		public const uint EXP_MIN = 0x01010001;
+		public const uint EXP_MAX = 0x7FFFFFFF;
 		public bool Abort = false;
 		private RandomList<KernelInput> _kernelInput = new RandomList<KernelInput>();
 		private void CreateInput()
 		{
+			ProgramParameters parms = ProgramParameters.Instance;
+
 			while (true)
 			{
 				bool inputQueueIsLow = false;
@@ -110,17 +143,32 @@ namespace scallion
 					int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
 					KernelInput input = new KernelInput(num_exps);
 
-					profiler.StartRegion("generate key");
-					input.Rsa.GenerateKey(keySize); // Generate a key
-					profiler.EndRegion("generate key");
+					// Read moduli from file or generate them if possible
+					if (parms.RSAPublicModuli != null)
+					{
+						if (parms.RSAPublicModuli.Count > 0) {
+							input.Rsa.Rsa.PublicModulus = parms.RSAPublicModuli.Dequeue();
+						} else {
+							break;
+						}
+					}
+					else
+					{
+						profiler.StartRegion("generate key");
+						input.Rsa.GenerateKey(keySize); // Generate a key
+						profiler.EndRegion("generate key");
+					}
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
 					int cur_exp_num = 0;
 					BigNumber[] Exps = new BigNumber[num_exps];
 					bool skip_flag = false;
+
+					// With EXP_MIN = 0x01010001 and EXP_MAX = 0x7FFFFFFF, only one iteration (i = 4)
 					for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++)
 					{
+						// With i = 4, exp = 0x01000000 (just a placeholder in the DER)
 						ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
 
 						// Set the exponent in the RSA key
@@ -184,10 +232,10 @@ namespace scallion
 					inputs.Add(input);
 					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
 					{
-						profiler.StartRegion("generate key");
+						//profiler.StartRegion("generate key");
 						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
 						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
-						profiler.EndRegion("generate key");
+						//profiler.EndRegion("generate key");
 					}
 					lock (_kernelInput)//put input on queue
 					{
@@ -483,32 +531,16 @@ namespace scallion
 					{
 						try
 						{
-							input.Rsa.ChangePublicExponent((BigNumber)result);
+							input.Rsa.Rsa.PublicExponent = (BigNumber)result;
 
 							string onion_hash = input.Rsa.OnionHash;
 							Console.WriteLine("CPU checking hash: {0}",onion_hash);
 
 							if (rp.DoesOnionHashMatchPattern(onion_hash))
 							{
-								Console.WriteLine();
-								Console.WriteLine("Ding!! Delicious scallions for you!!");
-								Console.WriteLine();
+								input.Rsa.ChangePublicExponent(result);
+								OutputKey(input.Rsa);
 
-								string key = input.Rsa.Rsa.PrivateKeyAsPEM;
-
-								if (parms.KeyOutputPath != null)
-								{
-									System.IO.File.AppendAllText(parms.KeyOutputPath,"Generated at: " + System.DateTime.Now.ToString("G") + "\n");
-									System.IO.File.AppendAllText(parms.KeyOutputPath,"Address/Hash: " + onion_hash + ".onion\n");
-									System.IO.File.AppendAllText(parms.KeyOutputPath,"RSA key: \n" + key + "\n\n");
-								}
-
-								Console.WriteLine("Exponent: {0}", result);
-								input.Rsa.ChangePublicExponent((BigNumber)result);
-								Console.WriteLine("Address/Hash: " + onion_hash + ".onion");
-								Console.WriteLine();
-								Console.WriteLine(key);
-								Console.WriteLine();
                                 if (!parms.ContinueGeneration) success = true;
 							}
 						}
@@ -516,6 +548,11 @@ namespace scallion
 					}
 				}
 				profiler.EndRegion("check results");
+
+				// Mark key as used (if configured)
+				if (parms.UsedModuliFile != null) {
+					parms.UsedModuliFile.WriteLine(input.Rsa.Rsa.PublicModulus.ToDecimalString());
+				}
 			}
 
 			foreach (var thread in inputThreads) thread.Abort();
