@@ -15,7 +15,7 @@ Dependancies
 
 Binary Download
 ---------------
-Just want a binary version? Grab it [here](https://github.com/lachesis/scallion/blob/binaries/scallion-v1.0.zip?raw=true).
+Just want a binary version? Grab it [here](https://github.com/lachesis/scallion/blob/binaries/scallion-v1.1.zip?raw=true).
 
 Build Linux
 -----------
