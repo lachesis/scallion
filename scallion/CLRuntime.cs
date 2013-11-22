@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Text;
 using System.Collections.Generic;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
@@ -335,7 +336,38 @@ namespace scallion
 
 				bufSuccess.EnqueueRead(false);
 
-                Console.WriteLine("Output: {0} {1} {2} {3} {4}", bufSuccess.Data[0], bufSuccess.Data[1], bufSuccess.Data[2], bufSuccess.Data[3], bufSuccess.Data[4]); 
+                // Calculate the SHA1 CPU-side
+                System.Security.Cryptography.SHA1 sha = new System.Security.Cryptography.SHA1CryptoServiceProvider(); 
+
+                String testdata = "Hello world!";
+                byte[] cpuhash = sha.ComputeHash(Encoding.ASCII.GetBytes(testdata));
+                StringBuilder cpuhex = new StringBuilder(cpuhash.Length * 2);
+                foreach (byte b in cpuhash)
+                    cpuhex.AppendFormat("{0:x2}", b);
+                Console.WriteLine("CPU SHA-1: {0}", cpuhex.ToString());
+
+                // Convert the SHA1 GPU-side to hex
+                String gpuhex = String.Format("{0:x8}{1:x8}{2:x8}{3:x8}{4:x8}", bufSuccess.Data[0], bufSuccess.Data[1], bufSuccess.Data[2], bufSuccess.Data[3], bufSuccess.Data[4]);  
+
+                Console.WriteLine("GPU SHA-1: {0}", gpuhex);
+                
+                if (gpuhex != cpuhex.ToString()) {
+                    Console.WriteLine();
+                    Console.WriteLine("******************************* ERROR ERROR ERROR *******************************");
+                    Console.WriteLine("*                                                                               *");
+                    Console.WriteLine("* GPU and CPU SHA-1 calculations do NOT match.                                  *");
+                    Console.WriteLine("* Hashing will NOT work until this is resolved.                                 *");
+                    Console.WriteLine("* The program will continue, but WILL NOT find a valid match.                   *");
+                    Console.WriteLine("*                                                                               *");
+                    Console.WriteLine("* See https://github.com/lachesis/scallion/issues/11#issuecomment-29046835      *");
+                    Console.WriteLine("*                                                                               *");
+                    Console.WriteLine("*********************************************************************************");
+                    Console.WriteLine();
+                }
+                else
+                {
+                    Console.WriteLine("Looks good!");
+                }
             }
 
 			CLKernel kernel = context.CreateKernel(program, kernelName);

@@ -7,7 +7,7 @@
 #define uint64 ulong
 #define int64 long
 
-#define SAFESHA
+#define FASTSHA
 
 GENERATED__CONSTANTS
 
@@ -585,11 +585,11 @@ __kernel void shaTest(__global uint32* success)
     H[4] = 0xC3D2E1F0;
 
     // Load our (pre-padded) test block: "Hello world!"
-    W[0] = 0x48656c6cu;
-    W[1] = 0x6f20776fu;
-    W[2] = 0x726c6421u;
-    W[3] = 0x80000000u;
-    W[15] = 0x00000070u;
+    W[0] = 0x48656c6cu;   // Hell
+    W[1] = 0x6f20776fu;   // o wo
+    W[2] = 0x726c6421u;   // rld!
+    W[3] = 0x80000000u;   // (bit 1)
+    W[15] = 0x00000060u;  // m-length in bits (not including bit '1')
 
     // Take the SHA
     sha1_block(W, H);
