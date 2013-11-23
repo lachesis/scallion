@@ -88,11 +88,11 @@ Some use cases with examples:
 
 - Search for a suffix
     
-       mono scallion.exe ..........suffix
+        mono scallion.exe ..........suffix
        
-       mono scallion.exe suffix$
+        mono scallion.exe suffix$
        
-       mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
+        mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
 
 Secure Remote Key Generation
 ----------------------------
