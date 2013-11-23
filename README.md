@@ -80,19 +80,19 @@ Scallion supports finding one or more of multiple patterns through a primitive r
 Some use cases with examples:
 - Generate a prefix followed by a number for better readability:
    
-    mono scallion.exe prefix[234567]
+        mono scallion.exe prefix[234567]
 
 - Search for several patterns at once (n.b. -c causes scallion to continue generating even once it gets a hit)
     
-    mono scallion.exe -c prefix scallion hashes
+        mono scallion.exe -c prefix scallion hashes
 
 - Search for a suffix
    
-   mono scallion.exe ..........suffix
-   
-   mono scallion.exe suffix$
-   
-   mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
+       mono scallion.exe ..........suffix
+       
+       mono scallion.exe suffix$
+       
+       mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
 
 Secure Remote Key Generation
 ----------------------------
@@ -101,95 +101,95 @@ Many people have asked about the ability to perform [split-key generation](https
 ### Usage Example
 
 - Generate the public and private keys. The prefix doesn't matter, it is just used to guess how many keys to generate. My machine can generate ~50 keys per second. This is purely done on the CPU, no GPU required.
-    [homebox]$ mono scallion.exe -m prefixab.work -s prefixab
-    
-    Generating that pattern will require approximately 549.756 gigahashes.
-    That will require on average 516 public keys.
-    Generating 2580 keys (for safety's sake).
-    Generating key 0 of 2580...
-    Generating key 100 of 2580...
-    Generating key 200 of 2580...
-    Generating key 300 of 2580...
-    Generating key 400 of 2580...
-    Generating key 500 of 2580...
-    Generating key 600 of 2580...
-    Generating key 700 of 2580...
-    Generating key 800 of 2580...
-    Generating key 900 of 2580...
-    Generating key 1000 of 2580...
-    Generating key 1100 of 2580...
-    Generating key 1200 of 2580...
-    Generating key 1300 of 2580...
-    Generating key 1400 of 2580...
-    Generating key 1500 of 2580...
-    Generating key 1600 of 2580...
-    Generating key 1700 of 2580...
-    Generating key 1800 of 2580...
-    Generating key 1900 of 2580...
-    Generating key 2000 of 2580...
-    Generating key 2100 of 2580...
-    Generating key 2200 of 2580...
-    Generating key 2300 of 2580...
-    Generating key 2400 of 2580...
-    Generating key 2500 of 2580...
+        [homebox]$ mono scallion.exe -m prefixab.work -s prefixab
+        
+        Generating that pattern will require approximately 549.756 gigahashes.
+        That will require on average 516 public keys.
+        Generating 2580 keys (for safety's sake).
+        Generating key 0 of 2580...
+        Generating key 100 of 2580...
+        Generating key 200 of 2580...
+        Generating key 300 of 2580...
+        Generating key 400 of 2580...
+        Generating key 500 of 2580...
+        Generating key 600 of 2580...
+        Generating key 700 of 2580...
+        Generating key 800 of 2580...
+        Generating key 900 of 2580...
+        Generating key 1000 of 2580...
+        Generating key 1100 of 2580...
+        Generating key 1200 of 2580...
+        Generating key 1300 of 2580...
+        Generating key 1400 of 2580...
+        Generating key 1500 of 2580...
+        Generating key 1600 of 2580...
+        Generating key 1700 of 2580...
+        Generating key 1800 of 2580...
+        Generating key 1900 of 2580...
+        Generating key 2000 of 2580...
+        Generating key 2100 of 2580...
+        Generating key 2200 of 2580...
+        Generating key 2300 of 2580...
+        Generating key 2400 of 2580...
+        Generating key 2500 of 2580...
 
 - Send the "prefixab.work" file to to the 3rd party. Hold on to "prefixab.work.priv" as it contains the corresponding private keys.
 
 - [3rdParty] Run the scallion search. The pattern here is the one that will actually be searched for. All normal scallion features can be used (multipattern, etc). This should support continuation (i.e. if the search crashes or you abort it, it should skip keys that have already been fully processed).
-    [3rdParty]$ mono scallion.exe -m prefixab.work -o prefixab.out prefixab
+        [3rdParty]$ mono scallion.exe -m prefixab.work -o prefixab.out prefixab
 
 - [3rdParty] Eventually you'll see results
 
-    Cooking up some delicions scallions...
-    Putting 1 patterns into 1 buckets.
-    Using kernel optimized from file kernel.cl (Optimized4_9)
-    Using work group size 64
-    Compiling kernel... done.
-    LoopIteration:81  HashCount:1358.95MH  Speed:510.5MH/s  Runtime:00:00:02  Predicted:00:00:01  CPU checking hash: prefixtqxqxyaxkk
+        Cooking up some delicions scallions...
+        Putting 1 patterns into 1 buckets.
+        Using kernel optimized from file kernel.cl (Optimized4_9)
+        Using work group size 64
+        Compiling kernel... done.
+        LoopIteration:81  HashCount:1358.95MH  Speed:510.5MH/s  Runtime:00:00:02  Predicted:00:00:01  CPU checking hash: prefixtqxqxyaxkk
 
-    Ding!! Delicious scallions for you!!
+        Ding!! Delicious scallions for you!!
 
-    Public Modulus:  104034656471910639183441462048234882216377353714800760947183976268798558118989688383108389030276771390272538636166196053337028631327657483245868475254132027413294093926375303575995242086859106541594991222193169950069190845465874647730359497522886565212806839757713851504194745050022468490282136394605183653131
-    Public Exponent: 1379077237
-    Address/Hash: prefixabxqxyaxkk.onion
+        Public Modulus:  104034656471910639183441462048234882216377353714800760947183976268798558118989688383108389030276771390272538636166196053337028631327657483245868475254132027413294093926375303575995242086859106541594991222193169950069190845465874647730359497522886565212806839757713851504194745050022468490282136394605183653131
+        Public Exponent: 1379077237
+        Address/Hash: prefixabxqxyaxkk.onion
 
-    init: 526ms / 1 (526ms, 1.9/s)
-    cpu precompute: 22ms / 7 (3.14ms, 318.18/s)
-    generate key: 0ms / 427 (0ms, 0/s)
-    total without init: 2688ms / 1 (2688ms, 0.37/s)
-    set buffers: 0ms / 81 (0ms, 0/s)
-    write buffers: 2ms / 81 (0.02ms, 40500/s)
-    read results: 2613ms / 81 (32.26ms, 31/s)
-    check results: 26ms / 81 (0.32ms, 3115.38/s)
+        init: 526ms / 1 (526ms, 1.9/s)
+        cpu precompute: 22ms / 7 (3.14ms, 318.18/s)
+        generate key: 0ms / 427 (0ms, 0/s)
+        total without init: 2688ms / 1 (2688ms, 0.37/s)
+        set buffers: 0ms / 81 (0ms, 0/s)
+        write buffers: 2ms / 81 (0.02ms, 40500/s)
+        read results: 2613ms / 81 (32.26ms, 31/s)
+        check results: 26ms / 81 (0.32ms, 3115.38/s)
 
-    505.56 million hashes per second
+        505.56 million hashes per second
 
 - [3rdParty] Now send the results file (prefixab.out above) to the original user
 
 - Finally, you need to use scallion to look up the private key, update the exponent, and dump the final private key and onion hash.
-    [homebox]$ mono scallion.exe -m prefixab.work -r prefixab.out -o prefixab.final 
+        [homebox]$ mono scallion.exe -m prefixab.work -r prefixab.out -o prefixab.final 
 
-    Ding!! Delicious scallions for you!!
+        Ding!! Delicious scallions for you!!
 
-    Public Modulus:  104034656471910639183441462048234882216377353714800760947183976268798558118989688383108389030276771390272538636166196053337028631327657483245868475254132027413294093926375303575995242086859106541594991222193169950069190845465874647730359497522886565212806839757713851504194745050022468490282136394605183653131
-    Public Exponent: 1379077237
-    Address/Hash: prefixabxqxyaxkk.onion
+        Public Modulus:  104034656471910639183441462048234882216377353714800760947183976268798558118989688383108389030276771390272538636166196053337028631327657483245868475254132027413294093926375303575995242086859106541594991222193169950069190845465874647730359497522886565212806839757713851504194745050022468490282136394605183653131
+        Public Exponent: 1379077237
+        Address/Hash: prefixabxqxyaxkk.onion
 
-    -----BEGIN RSA PRIVATE KEY-----
-    MIICXgIBAAKBgQCxz2AU5LV7tF9MAsc3FzrEiOuOUKwR4YSJ33MfwFiG5ASI+zxB
-    uUekT4w6fiJ5o4ZRT1mr6ThqVJnbMOcMYbqDCbfGdDXgcr5BCAZzI7tZK5GDDZea
-    aZGcOLubPQzddZaCoHhwpP6n2EhebvKPEDvXYc/WBArz6aJYidTh1KWSQQIETtNh
-    BQKBgC2pREX4wvbgLfYocDUFmodhcPaE4cfEJD7ki8Fg0Nom3DYVtueQW2ks1EU5
-    ufUoccHKDIw6DDJp9+Anwv7JkENi28G+ekUU0bez5rqPdxL0WSh3wlwEmfGxpMqA
-    4UqVrt0XblGePPUvlnY4+ZT2h4Z6HpxaJG4BQW9e9Nb6w02hAkEA4nZ3OMwflru2
-    hdpVoNgVoW6mx26eVtY0MY2P+cNKeogoEEfurM8ZaAfAfI3JVceNR4/ak3d4gRua
-    sqCxcbHK3wJBAMkAaIj558mqjlK7/b4bcg782xWacDSncDwhqLzAd+UgCl5oXOLr
-    0LhpS2ZXZ6usbLKM0UFN6WD4g70WXOsvZt8CQQCwN5CLunrzQH34mXMkpZoEiHqO
-    QOfXCzkdOoN09MPF0d5oQKqtIxao8LAMvaYX61yqI6b0cvWYFIIV4tZM33xrAkAw
-    vKb9wEDZbBYyCfwmVrFxbQurTx3QOIEVdA5Yquf71OrGOMBfUn7FLSTsIhelRR+h
-    SXE8m99Bhfr+S8V1shR/AkEAzHIwul//eymSpRO3/uVFd4qeLl55dgUfE9OZi3JE
-    85up4Awqikj+QF2S840dqnDYiTDfpkj01lb7t8x+O8A9jQ==
-    -----END RSA PRIVATE KEY-----
+        -----BEGIN RSA PRIVATE KEY-----
+        MIICXgIBAAKBgQCxz2AU5LV7tF9MAsc3FzrEiOuOUKwR4YSJ33MfwFiG5ASI+zxB
+        uUekT4w6fiJ5o4ZRT1mr6ThqVJnbMOcMYbqDCbfGdDXgcr5BCAZzI7tZK5GDDZea
+        aZGcOLubPQzddZaCoHhwpP6n2EhebvKPEDvXYc/WBArz6aJYidTh1KWSQQIETtNh
+        BQKBgC2pREX4wvbgLfYocDUFmodhcPaE4cfEJD7ki8Fg0Nom3DYVtueQW2ks1EU5
+        ufUoccHKDIw6DDJp9+Anwv7JkENi28G+ekUU0bez5rqPdxL0WSh3wlwEmfGxpMqA
+        4UqVrt0XblGePPUvlnY4+ZT2h4Z6HpxaJG4BQW9e9Nb6w02hAkEA4nZ3OMwflru2
+        hdpVoNgVoW6mx26eVtY0MY2P+cNKeogoEEfurM8ZaAfAfI3JVceNR4/ak3d4gRua
+        sqCxcbHK3wJBAMkAaIj558mqjlK7/b4bcg782xWacDSncDwhqLzAd+UgCl5oXOLr
+        0LhpS2ZXZ6usbLKM0UFN6WD4g70WXOsvZt8CQQCwN5CLunrzQH34mXMkpZoEiHqO
+        QOfXCzkdOoN09MPF0d5oQKqtIxao8LAMvaYX61yqI6b0cvWYFIIV4tZM33xrAkAw
+        vKb9wEDZbBYyCfwmVrFxbQurTx3QOIEVdA5Yquf71OrGOMBfUn7FLSTsIhelRR+h
+        SXE8m99Bhfr+S8V1shR/AkEAzHIwul//eymSpRO3/uVFd4qeLl55dgUfE9OZi3JE
+        85up4Awqikj+QF2S840dqnDYiTDfpkj01lb7t8x+O8A9jQ==
+        -----END RSA PRIVATE KEY-----
 
 ### Performance
 
@@ -247,11 +247,11 @@ Here are some frequently asked questions and their answers:
 
 - Can you use Bitcoin ASICs (e.g. Jalapeno, KnC) to accelerate this process?
 
-Sadly, no. While the process Scallion uses is conceptually similar (increment a nonce and check the hash), the details are different (SHA-1 vs double SHA-256 for Bitcoin). Furthermore, Bitcoin ASICs are as fast as they are because they are extremely taylored to Bitcoin mining applications. For example, here's the [datasheet](https://bitmine.ch/wp-content/uploads/2013/11/CoinCraft-A1.pdf) for the CoinCraft A-1, an ASIC that never came out, but is probably indicitive of the general approach. The microcontroller sends work in the form of the final 128-bits of a Bitcoin block, the hash midstate of the previous bits, a target difficulty, and the maximum nonce to try. The ASIC chooses the location to insert the nonce, and it chooses what blocks meet the hash. Scallion has to insert the nonce in a different location, and it checks for a pattern match rather than just "lower than XXXX".
+    Sadly, no. While the process Scallion uses is conceptually similar (increment a nonce and check the hash), the details are different (SHA-1 vs double SHA-256 for Bitcoin). Furthermore, Bitcoin ASICs are as fast as they are because they are extremely taylored to Bitcoin mining applications. For example, here's the [datasheet](https://bitmine.ch/wp-content/uploads/2013/11/CoinCraft-A1.pdf) for the CoinCraft A-1, an ASIC that never came out, but is probably indicitive of the general approach. The microcontroller sends work in the form of the final 128-bits of a Bitcoin block, the hash midstate of the previous bits, a target difficulty, and the maximum nonce to try. The ASIC chooses the location to insert the nonce, and it chooses what blocks meet the hash. Scallion has to insert the nonce in a different location, and it checks for a pattern match rather than just "lower than XXXX".
 
 - How can you use multiple devices?
 
-Run multiple Scallion instances. :) Scallion searches are probabilistic, so you won't be repeating work with the second device. True multi-device support wouldn't be too difficult, but it also wouldn't add much. I've run several scallion instances in [tmux](http://tmux.sourceforge.net/) or [screen](https://www.gnu.org/software/screen/) with great success. You'll just need to manually abort all the jobs when one finds a pattern (or write a shell script to monitor the output file and kill them all when it sees results).
+    Run multiple Scallion instances. :) Scallion searches are probabilistic, so you won't be repeating work with the second device. True multi-device support wouldn't be too difficult, but it also wouldn't add much. I've run several scallion instances in [tmux](http://tmux.sourceforge.net/) or [screen](https://www.gnu.org/software/screen/) with great success. You'll just need to manually abort all the jobs when one finds a pattern (or write a shell script to monitor the output file and kill them all when it sees results).
 
 Donations
 ---------
