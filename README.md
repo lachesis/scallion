@@ -136,6 +136,7 @@ Many people have asked about the ability to perform [split-key generation](https
 - Send the "prefixab.work" file to to the 3rd party. Hold on to "prefixab.work.priv" as it contains the corresponding private keys.
 
 - [3rdParty] Run the scallion search. The pattern here is the one that will actually be searched for. All normal scallion features can be used (multipattern, etc). This should support continuation (i.e. if the search crashes or you abort it, it should skip keys that have already been fully processed).
+
         [3rdParty]$ mono scallion.exe -m prefixab.work -o prefixab.out prefixab
 
 - [3rdParty] Eventually you'll see results
