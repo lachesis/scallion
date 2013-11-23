@@ -87,7 +87,7 @@ Some use cases with examples:
         mono scallion.exe -c prefix scallion hashes
 
 - Search for a suffix
-   
+    
        mono scallion.exe ..........suffix
        
        mono scallion.exe suffix$
