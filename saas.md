@@ -1,7 +1,7 @@
 Scallion as a Service
 =====================
 
-I am now offering to generate vanity onion addresses using Scallion's secure remote generation mode as a service to you, the GPU-less user. The secure remote generation mode only requires CPU time. If you're interested, please contact me at ```scallion@aftbit.com```.
+I am now offering to generate vanity onion addresses using Scallion's [secure remote generation](README.md#SRKG) feature as a service to you, the GPU-less user. The secure remote generation feature only requires CPU time. If you're interested, please contact me at ```scallion@aftbit.com```.
 
 Cost Breakdown
 --------------
