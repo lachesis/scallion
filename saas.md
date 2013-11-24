@@ -17,6 +17,8 @@ Cost Breakdown
 
 Note 1: For the 7 and 8 length prefixes, I'll accept an original dirty limerick (somehow featuring Tor) in lieu of Bitcoins.
 
+The My Time values are averages. As Scallion is probabilistic, it could take any amount of time. If I don't find an address matching your pattern, I will certainly refund your payment.
+
 If you supply multiple patterns, the times, keys, and storage required decrease linearly with the number of patterns. Consequently, the cost decreases linearly as well. This applies to regexp patterns as well.
 If you supply patterns of different lengths, you'll be charged for the shortest one (and almost certainly receive a hash matching the shortest pattern).
 
