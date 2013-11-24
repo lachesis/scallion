@@ -101,6 +101,7 @@ Many people have asked about the ability to perform [split-key generation](https
 ### Usage Example
 
 - Generate the public and private keys. The prefix doesn't matter, it is just used to guess how many keys to generate. My machine can generate ~50 keys per second. This is purely done on the CPU, no GPU required.
+        
         [homebox]$ mono scallion.exe -m prefixab.work -s prefixab
         
         Generating that pattern will require approximately 549.756 gigahashes.
@@ -168,6 +169,7 @@ Many people have asked about the ability to perform [split-key generation](https
 - [3rdParty] Now send the results file (prefixab.out above) to the original user
 
 - Finally, you need to use scallion to look up the private key, update the exponent, and dump the final private key and onion hash.
+        
         [homebox]$ mono scallion.exe -m prefixab.work -r prefixab.out -o prefixab.final 
 
         Ding!! Delicious scallions for you!!
