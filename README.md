@@ -10,7 +10,7 @@ Scallion is available under the MIT licence. If you use code from this project i
 
 **Note**: I am now generating addresses using the [secure remote generation](#SRKG) feature for a [small fee](saas.md).
 
-Please send any donations to 1**onion**1PNeM2x9LhdqWn6uVFyU2iSpy7M.
+Please send any donations to 1onion1PNeM2x9LhdqWn6uVFyU2iSpy7M.
 
 FAQ
 ---
