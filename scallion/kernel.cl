@@ -7,6 +7,8 @@
 #define uint64 ulong
 #define int64 long
 
+#define GPG_Test
+
 #define FASTSHA
 
 GENERATED__CONSTANTS
@@ -481,31 +483,14 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	for(i=0; i<5; i++) H[i] = Midstates[i];
 	
 	// Load the exponent into the W
-#ifdef KT_Optimized4_9
-	W[2] &= 0xFF000000u;
-	W[2] |= exp >> 8 & 0x00FFFFFFu;
-	W[3] &= 0x00FFFFFFu;
-	W[3] |= exp << 24 & 0xFF000000u;
-#endif
-#ifdef KT_Optimized4_11
-	W[2] &= 0xFFFFFF00u;
-	W[2] |= exp >> 24 & 0x000000FFu;
-	W[3] &= 0x000000FFu;
-	W[3] |= exp << 8 & 0xFFFFFF00u;
-#endif
-#ifdef KT_Optimized4_10
-	W[2] &= 0xFFFF0000u;
-	W[2] |= exp >> 16 & 0x0000FFFFu;
-	W[3] &= 0x0000FFFFu;
-	W[3] |= exp << 16 && 0xFFFF0000u;
-#endif
+	GENERATED__EXP_LOADING_CODE
       
     // Take the last part of the hash
 	sha1_block(W,H);
 	
 	// Get and check the FNV hash for each bitmask
 	// Uses code generated on the C# side
-#ifdef KT_Optimized4_10
+#ifdef GPG_Test
 	Results[0] = H[0];
 	Results[1] = H[1];
 	Results[2] = H[2];

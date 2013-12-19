@@ -11,9 +11,7 @@ namespace scallion
 	public enum KernelType
 	{
 		Normal,
-		Optimized4_9,
-		Optimized4_10,
-		Optimized4_11
+		Optimized4
 	}
 
 	public class CLRuntime
@@ -317,29 +315,15 @@ namespace scallion
 						// Get the DER
 						byte[] der = input.Rsa.DER;
 						int exp_index = der.Length % 64 - i;
-						if (kernel_type == KernelType.Optimized4_9) {
-							if(exp_index != 9) { // exponent index assumed to be 9 in the kernel
-								Console.WriteLine("Exponent index doesn't match - skipping key");
-								skip_flag = true;
-								break;
-							}
-							if(i != 4) { // exponent length assumed to be 4 in the kernel
-								Console.WriteLine("Exponent length doesn't match - skipping key");
-								skip_flag = true;
-								break;
-							}
+						if(exp_index != parms.ExponentIndex) {
+							Console.WriteLine("Exponent index doesn't match - skipping key");
+							skip_flag = true;
+							break;
 						}
-						else if (kernel_type == KernelType.Optimized4_11) {
-							if(exp_index != 11) { // exponent index assumed to be 9 in the kernel
-								Console.WriteLine("Exponent index doesn't match - skipping key");
-								skip_flag = true;
-								break;
-							}
-							if(i != 4) { // exponent length assumed to be 4 in the kernel
-								Console.WriteLine("Exponent length doesn't match - skipping key");
-								skip_flag = true;
-								break;
-							}
+						if(i != 4) { // exponent length assumed to be 4 in the kernel
+							Console.WriteLine("Exponent length doesn't match - skipping key");
+							skip_flag = true;
+							break;
 						}
 
 						// Put the DER into Ws
@@ -474,18 +458,7 @@ namespace scallion
 					kernelFileName = "kernel.cl";
 					kernelName = "normal";
 					break;
-				case KernelType.Optimized4_9:
-					if (keySize != 1024) throw new ArgumentException("Kernel only works with keysize 1024.");
-					kernelFileName = "kernel.cl";
-					kernelName = "optimized";
-					break;
-				case KernelType.Optimized4_10:
-					if (keySize != 4096) throw new ArgumentException("Kernel only works with keysize 4096.");
-					kernelFileName = "kernel.cl";
-					kernelName = "optimized";
-					break;
-				case KernelType.Optimized4_11:
-					if (keySize != 2048 && keySize != 4096) throw new ArgumentException("Kernel only works with keysize 2048 or 4096.");
+				case KernelType.Optimized4:
 					kernelFileName = "kernel.cl";
 					kernelName = "optimized";
 					break;
@@ -505,7 +478,7 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 
 			Console.Write("Compiling kernel... ");
-			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length);
+			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
