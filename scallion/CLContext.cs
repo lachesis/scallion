@@ -223,7 +223,7 @@ namespace scallion
 			if (!this.disposed)
 			{
 				if (disposing) { /*Dispose managed resources*/ }
-				CL.ReleaseContext(ContextId);
+				CL.ReleaseKernel(KernelId);
 			}
 		}
 		~CLKernel()
