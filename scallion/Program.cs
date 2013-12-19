@@ -42,6 +42,20 @@ namespace scallion
         public string KeyOutputPath = null;
 		public string PIDFile = null;
 
+		public int ExponentIndex {
+			get {
+				switch (KeySize) {
+				case 4096:
+				case 2048:
+					return 11;
+				case 1024:
+					return 9;
+				default:
+					throw new System.NotImplementedException();
+				}
+			}
+		}
+
 		public string RSAModuliPath = null;
 		public string InputResultsPath = null;
 
@@ -54,14 +68,7 @@ namespace scallion
             {
                 if (ProgramMode == Mode.NonOptimized)
                     return KernelType.Normal;
-                switch (KeySize)
-                {
-                    case 4096:
-                    case 2048:
-                        return KernelType.Optimized4_11;
-                    case 1024:
-                        return KernelType.Optimized4_9;
-                }
+				return KernelType.Optimized4;
                 throw new System.NotImplementedException();
             }
         }

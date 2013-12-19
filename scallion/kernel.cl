@@ -481,18 +481,7 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	for(i=0; i<5; i++) H[i] = Midstates[i];
 	
 	// Load the exponent into the W
-#ifdef KT_Optimized4_9
-	W[2] &= 0xFF000000u;
-	W[2] |= exp >> 8 & 0x00FFFFFFu;
-	W[3] &= 0x00FFFFFFu;
-	W[3] |= exp << 24 & 0xFF000000u;
-#endif
-#ifdef KT_Optimized4_11
-	W[2] &= 0xFFFFFF00u;
-	W[2] |= exp >> 24 & 0x000000FFu;
-	W[3] &= 0x000000FFu;
-	W[3] |= exp << 8 & 0xFFFFFF00u;
-#endif
+	GENERATED__EXP_LOADING_CODE
       
     // Take the last part of the hash
 	sha1_block(W,H);
