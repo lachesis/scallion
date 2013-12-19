@@ -491,17 +491,11 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	// Get and check the FNV hash for each bitmask
 	// Uses code generated on the C# side
 #ifdef GPG_Test
-	Results[0] = H[0];
-	Results[1] = H[1];
-	Results[2] = H[2];
-	Results[3] = H[3];
-	Results[4] = H[4];
-	Results[5] = exp;
-	/*if((H[4] & 0x0000FFFF) == 0x0000420E) {
+	if((H[4] & 0xFFFFFFFF) == 0xFFC7420E) {
 		Results[get_local_id(0) % ResultsArraySize] = exp;
-	}*/
+	}
 #endif
-#ifndef KT_Optimized4_10
+#ifndef GPG_Test
 	GENERATED__CHECKING_CODE
 #endif
 }

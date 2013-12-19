@@ -53,7 +53,6 @@ namespace scallion
 		public void FromPrivateKeyPEM(string pem)
 		{
 			Rsa = RSA.FromPrivateKey(new BIO(pem));
-			Rsa_IPmodQ = BigNumber.mod_inverse(Rsa.SecretPrimeFactorP, Rsa.SecretPrimeFactorQ);
 		}
 
 		public void GenerateKey(int size)
@@ -65,12 +64,8 @@ namespace scallion
 		{
 			Rsa.GenerateKeys(size,exponent,null,null);
 			Timestamp = (uint)(DateTime.UtcNow - new DateTime(1970,1,1,0,0,0)).TotalSeconds;
-			Console.WriteLine(Rsa.SecretPrimeFactorP.ToDecimalString());
-			Console.WriteLine(Rsa.SecretPrimeFactorQ.ToDecimalString());
-			Rsa_IPmodQ = BigNumber.mod_inverse(Rsa.SecretPrimeFactorP, Rsa.SecretPrimeFactorQ);
 		}
 
-		private BigNumber Rsa_IPmodQ = null;
 		public uint Timestamp { get; set; }
 		public RSA Rsa { get; private set; }
 	
@@ -87,9 +82,14 @@ namespace scallion
 			return mpi;
 		}
 
+		public byte[] GPG_v4Packet() {
+			int _;
+			return GPG_v4Packet(out _);
+		}
+
 		// TODO: Rename and refactor
 		// This is a signature packet for generating the fingerprint
-		public byte[] GPG_v4Packet {
+		public byte[] GPG_v4Packet(out int exp_index) {
 			// Packet format: (all big-endian)
 			//	1 byte:     0x99 (fingerprint packet)
 			//  2 bytes:    length of version -> end
@@ -98,45 +98,45 @@ namespace scallion
 			//  4 bytes:    timestamp
 			//  X bytes:    MPI of n
 			//  X bytes:    MPI of e
-			get {
-				int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes; // len from version -> end
-				byte[] v4pkt = new byte[len + 3];
-				byte[] buf;
-				int idx = 0;
+			int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes; // len from version -> end
+			byte[] v4pkt = new byte[len + 3];
+			byte[] buf;
+			int idx = 0;
 
-				v4pkt[idx] = 0x99; // 0x99 to start
-				idx++;
+			v4pkt[idx] = 0x99; // 0x99 to start
+			idx++;
 
-				v4pkt[idx] = (byte)((len >> 8) & 0xFFu); // high-order length byte
-				idx++;
+			v4pkt[idx] = (byte)((len >> 8) & 0xFFu); // high-order length byte
+			idx++;
 
-				v4pkt[idx] = (byte)(len & 0xFFu); // low-order length byte
-				idx++;
+			v4pkt[idx] = (byte)(len & 0xFFu); // low-order length byte
+			idx++;
 
-				v4pkt[idx] = 0x04; // version
-				idx++;
+			v4pkt[idx] = 0x04; // version
+			idx++;
 
-				buf = new byte[4];
-				((BigNumber)Timestamp).ToBytes(buf);
-				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
-				idx += buf.Length;
+			buf = new byte[4];
+			((BigNumber)Timestamp).ToBytes(buf);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
 
-				v4pkt[idx] = 0x01; // algorithm - RSA
-				idx++;
+			v4pkt[idx] = 0x01; // algorithm - RSA
+			idx++;
 
-				buf = BigNumberToMPI(Rsa.PublicModulus);
-				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
-				idx += buf.Length;
+			buf = BigNumberToMPI(Rsa.PublicModulus);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
 
-				Console.WriteLine("Exponent is {0}", Rsa.PublicExponent.ToDecimalString());
-				Console.WriteLine("Exponent should start at byte {0}", idx + 2);
+			// Set the exponent index (out parameter) for later verification
+			exp_index = idx + 2;
+			// KEEP THIS! Valuable for adding new key sizes (although 1024 * X bits seems to be 13)
+			//Console.WriteLine("Exponent should start at byte {0} (byte {1} in final block)", exp_index, exp_index % 64);
 
-				buf = BigNumberToMPI(Rsa.PublicExponent);
-				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
-				idx += buf.Length;
+			buf = BigNumberToMPI(Rsa.PublicExponent);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
 
-				return v4pkt;
-			}
+			return v4pkt;
 		}
 
 		// TODO: Find and remove the garbage 0s at the end of the file
@@ -158,8 +158,10 @@ namespace scallion
 			//  2 bytes:    sum of all bytes in d-u, mod 65536
 			byte[] buf;
 
+			BigNumber IPmodQ = BigNumber.mod_inverse(Rsa.SecretPrimeFactorP, Rsa.SecretPrimeFactorQ);
+
 			int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes +
-				      3 + 2*4 + Rsa.PrivateExponent.Bytes + Rsa.SecretPrimeFactorP.Bytes + Rsa.SecretPrimeFactorQ.Bytes + Rsa_IPmodQ.Bytes;
+					  3 + 2*4 + Rsa.PrivateExponent.Bytes + Rsa.SecretPrimeFactorP.Bytes + Rsa.SecretPrimeFactorQ.Bytes + IPmodQ.Bytes;
 
 			int lenlen = new BigNumber((uint)len).Bytes;
 			buf = new byte[lenlen];
@@ -240,7 +242,7 @@ namespace scallion
 			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
 			idx += buf.Length;
 
-			buf = BigNumberToMPI(Rsa_IPmodQ);
+			buf = BigNumberToMPI(IPmodQ);
 			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
 			idx += buf.Length;
 
@@ -285,7 +287,7 @@ namespace scallion
 		public byte[] GPG_fingerprint {
 			get {
 				var sha1 = new System.Security.Cryptography.SHA1Managed();
-				return sha1.ComputeHash(this.GPG_v4Packet);
+				return sha1.ComputeHash(this.GPG_v4Packet());
 			}
 		}
 

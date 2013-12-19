@@ -42,16 +42,33 @@ namespace scallion
         public string KeyOutputPath = null;
 		public string PIDFile = null;
 
+		public bool GPGMode = false;
+
 		public int ExponentIndex {
 			get {
-				switch (KeySize) {
-				case 4096:
-				case 2048:
-					return 11;
-				case 1024:
-					return 9;
-				default:
-					throw new System.NotImplementedException();
+				if (GPGMode) {
+					switch (KeySize) {
+					case 8192:
+					case 4096:
+					case 2048:
+					case 1024:
+						return 13;
+					case 3192:
+						return 28;
+					default:
+						throw new System.NotImplementedException();
+					}
+				}
+				else {
+					switch (KeySize) {
+					case 4096:
+					case 2048:
+						return 11;
+					case 1024:
+						return 9;
+					default:
+						throw new System.NotImplementedException();
+					}
 				}
 			}
 		}
@@ -268,10 +285,12 @@ namespace scallion
         static CLRuntime _runtime = new CLRuntime();
         static void Main(string[] args)
         {
-			RSAWrapper r = new RSAWrapper();
+			OpenSSL.Core.ThreadInitialization.InitializeThreads();
+
+			/*RSAWrapper r = new RSAWrapper();
 			r.GenerateKey(4096);
 			File.WriteAllText("/tmp/test.asc", r.GPG_privkey_export);
-			Console.WriteLine("Wrote out key with fingerprint: {0}", r.GPG_fingerprint_string);
+			Console.WriteLine("Wrote out key with fingerprint: {0}", r.GPG_fingerprint_string);*/
 
 			// TODO: Clean up gpg fingerprint test and move it elsewhere
 			/*RSAWrapper r = new RSAWrapper();
@@ -287,6 +306,7 @@ namespace scallion
                 .Add("n|nonoptimized", "Runs non-optimized kernel", parseMode(Mode.NonOptimized))
                 .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
                 .Add("h|?|help", "Displays command line usage help.", parseMode(Mode.Help))
+				.Add("gpg", "GPG vanitygen mode.", (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
                 .Add<uint>("d|device=", "Specifies the opencl device that should be used.", (i) => parms.DeviceId = i)
                 .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
                 .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
@@ -413,6 +433,7 @@ namespace scallion
 			Console.WriteLine("Stopping the GPU and shutting down...");
 			Console.WriteLine();
 			lock (_runtime) { _runtime.Abort = true; }
+			OpenSSL.Core.ThreadInitialization.UninitializeThreads();
 		}
 
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)

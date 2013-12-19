@@ -125,8 +125,10 @@ namespace scallion
 			public readonly uint[] Results;
 			public readonly uint BaseExp;
 		}
-		public const uint EXP_MIN = 0x01010001;
-		public const uint EXP_MAX = 0x7FFFFFFF;
+		//public const uint EXP_MIN = 0x01010001;
+		//public const uint EXP_MAX = 0x7FFFFFFF;
+		public const uint EXP_MIN = 0x80010001;
+		public const uint EXP_MAX = 0xFFFFFFFF;
 		public bool Abort = false;
 		private RandomList<KernelInput> _kernelInput = new RandomList<KernelInput>();
 		private void CreateInput()
@@ -162,10 +164,7 @@ namespace scallion
 					BigNumber[] Exps = new BigNumber[1];
 					bool skip_flag = false;
 
-					// With EXP_MIN = 0x01010001 and EXP_MAX = 0x7FFFFFFF, only one iteration (i = 4)
-					// With i = 4, exp = 0x01000000 (just a placeholder in the DER)
-					//ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
-					ulong exp = 0x01000000;
+					ulong exp = EXP_MIN;
 
 					// Set the exponent in the RSA key
 					// NO SANITY CHECK - just for building a DER
@@ -173,44 +172,20 @@ namespace scallion
 					Exps[0] = (BigNumber)exp;
 
 					// Get the GPG v4 packet
-					byte[] data = input.Rsa.GPG_v4Packet;
-					int exp_index = 10; // TODO: Calculate me
-					if (kernel_type == KernelType.Optimized4_9) {
-						if(exp_index != 9) { // exponent index assumed to be 9 in the kernel
-							Console.WriteLine("Exponent index doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-						/*if(i != 4) { // exponent length assumed to be 4 in the kernel
-							Console.WriteLine("Exponent length doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}*/
+					int exp_index;
+					byte[] data = input.Rsa.GPG_v4Packet(out exp_index);
+					exp_index %= 64; // SHA-1 block size
+				
+					if(exp_index != parms.ExponentIndex) {
+						Console.WriteLine("Exponent index doesn't match - skipping key");
+						skip_flag = true;
+						break;
 					}
-					else if (kernel_type == KernelType.Optimized4_11) {
-						if(exp_index != 11) { // exponent index assumed to be 11 in the kernel
-							Console.WriteLine("Exponent index doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-						/*if(i != 4) { // exponent length assumed to be 4 in the kernel
-							Console.WriteLine("Exponent length doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}*/
-					}
-					else if (kernel_type == KernelType.Optimized4_10) {
-						if(exp_index != 10) { // exponent index assumed to be 10 in the kernel
-							Console.WriteLine("Exponent index doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-						/*if(i != 4) { // exponent length assumed to be 4 in the kernel
-							Console.WriteLine("Exponent length doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}*/
-					}
+					/*if(i != 4) { // exponent length assumed to be 4 in the kernel
+						Console.WriteLine("Exponent length doesn't match - skipping key");
+						skip_flag = true;
+						break;
+					}*/
 
 					// Put the v4 packet into Ws
 					SHA1 Sha1 = new SHA1();
@@ -222,8 +197,6 @@ namespace scallion
 						return t;
 					}).ToArray();
 
-					Console.WriteLine("A");
-
 					// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
 					Sha1.H.CopyTo(input.Midstates, 0);
 					Ws.Last().Take(16).ToArray().CopyTo(input.LastWs, 0);
@@ -231,35 +204,29 @@ namespace scallion
 
 					profiler.EndRegion("cpu precompute");
 
-					Console.WriteLine("B");
-
-					if(skip_flag) {
-						Console.WriteLine("AHHHH!");
-						continue; // we got a bad key - don't enqueue it
-					}
-
-					Console.WriteLine("C");
+					if(skip_flag) continue; // we got a bad key - don't enqueue it
 
 					List<KernelInput> inputs = new List<KernelInput>();
 					inputs.Add(input);
-					/*for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
+
+					// Stretch the key for multiple exponents (if more than one kernel iteration (work group?) will be needed)
+					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
 					{
-						Console.WriteLine("D*");
 						//profiler.StartRegion("generate key");
 						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
 						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
 						//profiler.EndRegion("generate key");
-					}*/
-					Console.WriteLine("E");
+					}
+
+					// TODO: Stretch the key for multiple time stamps
+
 					lock (_kernelInput)//put input on queue
 					{
-						Console.WriteLine("F");
 						foreach (KernelInput i in inputs)
 						{
-							Console.WriteLine("G*");
 							_kernelInput.Push(i);
 						}
-						Console.WriteLine("Input pool: {0}", _kernelInput.Count);
+						//Console.WriteLine("[DEBUG] Input pool size: {0}", _kernelInput.Count);
 					}
 					continue;//skip the sleep cause we might be really low
 				}
@@ -641,13 +608,14 @@ namespace scallion
 				              PredictedRuntime(hashes_per_win,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
-				input.Rsa.Rsa.PublicExponent = (BigNumber)input.Results[5];
+				/*input.Rsa.Rsa.PublicExponent = (BigNumber)input.Results[5];
 				uint[] hash = new uint[5];
 				Array.Copy(input.Results, hash, 5);
-				Console.WriteLine("gpu hash: {0}", BitConverter.ToString(hash.SelectMany(BitConverter.GetBytes).ToArray()).Replace("-", ""));
+				String gpuhashhex = String.Format("{0:x8}{1:x8}{2:x8}{3:x8}{4:x8}", input.Results[0], input.Results[1], input.Results[2], input.Results[3], input.Results[4]);
+				Console.WriteLine("gpu hash: {0}", gpuhashhex);
 				Console.WriteLine("cpu hash: {0}", input.Rsa.GPG_fingerprint_string);
 				success = true;
-				break;
+				break;*/
 
 				foreach (var result in input.Results)
 				{
