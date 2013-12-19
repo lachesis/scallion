@@ -493,13 +493,32 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	W[3] &= 0x000000FFu;
 	W[3] |= exp << 8 & 0xFFFFFF00u;
 #endif
+#ifdef KT_Optimized4_10
+	W[2] &= 0xFFFF0000u;
+	W[2] |= exp >> 16 & 0x0000FFFFu;
+	W[3] &= 0x0000FFFFu;
+	W[3] |= exp << 16 && 0xFFFF0000u;
+#endif
       
     // Take the last part of the hash
 	sha1_block(W,H);
 	
 	// Get and check the FNV hash for each bitmask
 	// Uses code generated on the C# side
+#ifdef KT_Optimized4_10
+	Results[0] = H[0];
+	Results[1] = H[1];
+	Results[2] = H[2];
+	Results[3] = H[3];
+	Results[4] = H[4];
+	Results[5] = exp;
+	/*if((H[4] & 0x0000FFFF) == 0x0000420E) {
+		Results[get_local_id(0) % ResultsArraySize] = exp;
+	}*/
+#endif
+#ifndef KT_Optimized4_10
 	GENERATED__CHECKING_CODE
+#endif
 }
 
 // Works with any exp index and starting length

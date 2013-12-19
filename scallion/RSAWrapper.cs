@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
@@ -52,6 +53,7 @@ namespace scallion
 		public void FromPrivateKeyPEM(string pem)
 		{
 			Rsa = RSA.FromPrivateKey(new BIO(pem));
+			Rsa_IPmodQ = BigNumber.mod_inverse(Rsa.SecretPrimeFactorP, Rsa.SecretPrimeFactorQ);
 		}
 
 		public void GenerateKey(int size)
@@ -62,9 +64,237 @@ namespace scallion
 		public void GenerateKey(int size, BigNumber exponent)
 		{
 			Rsa.GenerateKeys(size,exponent,null,null);
+			Timestamp = (uint)(DateTime.UtcNow - new DateTime(1970,1,1,0,0,0)).TotalSeconds;
+			Console.WriteLine(Rsa.SecretPrimeFactorP.ToDecimalString());
+			Console.WriteLine(Rsa.SecretPrimeFactorQ.ToDecimalString());
+			Rsa_IPmodQ = BigNumber.mod_inverse(Rsa.SecretPrimeFactorP, Rsa.SecretPrimeFactorQ);
 		}
 
+		private BigNumber Rsa_IPmodQ = null;
+		public uint Timestamp { get; set; }
 		public RSA Rsa { get; private set; }
+	
+		// TODO: Fewer copies, cleaner code
+		// REGION: GPG
+		private byte[] BigNumberToMPI(BigNumber num)
+		{
+			byte[] mpi = new byte[num.Bytes + 2];
+			mpi[0] = (byte)((num.Bits >> 8) & 0xFFu);
+			mpi[1] = (byte)(num.Bits & 0xFFu);
+			byte[] buf = new byte[num.Bytes];
+			num.ToBytes(buf);
+			Array.Copy(buf, 0, mpi, 2, num.Bytes);
+			return mpi;
+		}
+
+		// TODO: Rename and refactor
+		// This is a signature packet for generating the fingerprint
+		public byte[] GPG_v4Packet {
+			// Packet format: (all big-endian)
+			//	1 byte:     0x99 (fingerprint packet)
+			//  2 bytes:    length of version -> end
+			//  1 byte:     version (0x04)
+			//  1 byte:     algorithm type (0x01 = RSA)
+			//  4 bytes:    timestamp
+			//  X bytes:    MPI of n
+			//  X bytes:    MPI of e
+			get {
+				int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes; // len from version -> end
+				byte[] v4pkt = new byte[len + 3];
+				byte[] buf;
+				int idx = 0;
+
+				v4pkt[idx] = 0x99; // 0x99 to start
+				idx++;
+
+				v4pkt[idx] = (byte)((len >> 8) & 0xFFu); // high-order length byte
+				idx++;
+
+				v4pkt[idx] = (byte)(len & 0xFFu); // low-order length byte
+				idx++;
+
+				v4pkt[idx] = 0x04; // version
+				idx++;
+
+				buf = new byte[4];
+				((BigNumber)Timestamp).ToBytes(buf);
+				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+				idx += buf.Length;
+
+				v4pkt[idx] = 0x01; // algorithm - RSA
+				idx++;
+
+				buf = BigNumberToMPI(Rsa.PublicModulus);
+				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+				idx += buf.Length;
+
+				Console.WriteLine("Exponent is {0}", Rsa.PublicExponent.ToDecimalString());
+				Console.WriteLine("Exponent should start at byte {0}", idx + 2);
+
+				buf = BigNumberToMPI(Rsa.PublicExponent);
+				Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+				idx += buf.Length;
+
+				return v4pkt;
+			}
+		}
+
+		// TODO: Find and remove the garbage 0s at the end of the file
+		// GPG handles 'em fine, so whatever for now.
+		private byte[] GPG_privkey_packet() {
+			// Packet format: (all big-endian)
+			//	1 byte:     header (0x80 | ((tag << 2) & 0b00111100) | (length_type & 0b11)) -> tag = 5 for privkey
+			//  1-4 bytes:  packet length (from version -> end)
+			//  1 byte:     version (0x04)
+			//  1 byte:     algorithm type (0x01 = RSA)
+			//  4 bytes:    timestamp
+			//  X bytes:    MPI of n
+			//  X bytes:    MPI of e
+			//  1 byte:		encryption state of private keys (0x00 = plaintext)
+			//  X bytes:    MPI of d
+			//  X bytes:    MPI of p
+			//  X bytes:    MPI of q
+			//  X bytes:    MPI of u
+			//  2 bytes:    sum of all bytes in d-u, mod 65536
+			byte[] buf;
+
+			int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes +
+				      3 + 2*4 + Rsa.PrivateExponent.Bytes + Rsa.SecretPrimeFactorP.Bytes + Rsa.SecretPrimeFactorQ.Bytes + Rsa_IPmodQ.Bytes;
+
+			int lenlen = new BigNumber((uint)len).Bytes;
+			buf = new byte[lenlen];
+			new BigNumber((uint)len).ToBytes(buf);
+
+			// Calculate length type
+			byte length_type = 0;
+			switch (lenlen) {
+			case 1:
+				length_type = 0;
+				break;
+			case 2:
+				length_type = 1;
+				break;
+			case 3:
+				// Zero-pad length
+				byte[] temp = new byte[4];
+				Array.Copy(buf, 0, temp, 1, 3);
+				temp[0] = 0;
+				buf = temp;
+				length_type = 2;
+				break;
+			case 4:
+				length_type = 2;
+				break;
+			default:
+				throw new Exception("Invalid length.");
+			}
+
+			// Calclulate packet header
+			//System.Diagnostics.Debugger.Break();
+			byte tag = 5;
+			byte header = (byte)(0x80 | ((tag << 2) & 0x3C) | (length_type & 0x03));
+
+			byte[] v4pkt = new byte[len + buf.Length + 1];
+			int idx = 0;
+
+			// Copy the header and length into the packet
+			v4pkt[0] = header;
+			Array.Copy(buf, 0, v4pkt, 1, buf.Length);
+			idx += 1 + buf.Length;
+
+			v4pkt[idx] = 0x04; // version
+			idx += 1;
+
+			buf = new byte[4];
+			((BigNumber)Timestamp).ToBytes(buf);
+			Array.Copy(buf, 0, v4pkt, idx, 4);
+			idx += 4;
+
+			v4pkt[idx] = 0x01; // algorithm - RSA
+			idx += 1;
+
+			buf = BigNumberToMPI(Rsa.PublicModulus);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			buf = BigNumberToMPI(Rsa.PublicExponent);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			// If we stopped here, we'd have a v4 pubkey packet (with the wrong length and tag)
+
+			v4pkt[idx] = 0x00; // not encrypted
+			idx += 1;
+
+			int checksum_start = idx;
+
+			buf = BigNumberToMPI(Rsa.PrivateExponent);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			buf = BigNumberToMPI(Rsa.SecretPrimeFactorP);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			buf = BigNumberToMPI(Rsa.SecretPrimeFactorQ);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			buf = BigNumberToMPI(Rsa_IPmodQ);
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			// Calculate checksum
+			ulong sum = 0;
+			for (int i = checksum_start; i < idx; i++) {
+				sum += v4pkt[i];				
+			}
+			sum = sum % 65536;
+			buf = new byte[2];
+			((BigNumber)sum).ToBytes(buf);
+
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+			idx += buf.Length;
+
+			return v4pkt;
+		}
+
+		static IEnumerable<string> ChunksUpto(string str, int maxChunkSize) {
+			for (int i = 0; i < str.Length; i += maxChunkSize) 
+				yield return str.Substring(i, Math.Min(maxChunkSize, str.Length-i));
+		}
+
+		private string ascii_armor(byte[] input, string tag) {
+			StringBuilder s = new StringBuilder();
+			s.AppendLine("-----BEGIN " + tag + "-----");
+			s.AppendLine("Version: Scallion");
+			s.AppendLine();
+			foreach (var str in ChunksUpto(Convert.ToBase64String(input), 78)) {
+				s.AppendLine(str);
+			}
+			s.AppendLine("-----END " + tag + "-----");
+			return s.ToString();
+		}
+
+		public string GPG_privkey_export {
+			get {
+				return ascii_armor(GPG_privkey_packet(), "PGP PRIVATE KEY BLOCK");
+			}
+		}
+
+		public byte[] GPG_fingerprint {
+			get {
+				var sha1 = new System.Security.Cryptography.SHA1Managed();
+				return sha1.ComputeHash(this.GPG_v4Packet);
+			}
+		}
+
+		public string GPG_fingerprint_string {
+			get {
+				return BitConverter.ToString(this.GPG_fingerprint).Replace("-","").ToLower();
+			}
+		}
+		// END REGION: GPG
 
 		public byte[] DER {
 			get {

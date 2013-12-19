@@ -57,6 +57,7 @@ namespace scallion
                 switch (KeySize)
                 {
                     case 4096:
+					return KernelType.Optimized4_10; // TODO: this is a hack to make 4096 trigger GPG mode :) fix this shit.
                     case 2048:
                         return KernelType.Optimized4_11;
                     case 1024:
@@ -261,6 +262,18 @@ namespace scallion
         static CLRuntime _runtime = new CLRuntime();
         static void Main(string[] args)
         {
+			RSAWrapper r = new RSAWrapper();
+			r.GenerateKey(4096);
+			File.WriteAllText("/tmp/test.asc", r.GPG_privkey_export);
+			Console.WriteLine("Wrote out key with fingerprint: {0}", r.GPG_fingerprint_string);
+
+			// TODO: Clean up gpg fingerprint test and move it elsewhere
+			/*RSAWrapper r = new RSAWrapper();
+			r.Timestamp = 1387430955;
+			r.Rsa.PublicModulus = BigNumber.FromHexString("00E2FC646FF48AFC8C2A7DDF1B99CECD21A0AEC603DBAAA1A7ADF6836A6CED82BAE694AC5A4ACBD7FC1D36B2C677BE25E400330D295D044C9F6AFAEA45A8CF370F59E398F853FFCED03395D297CEED47C0E9EF2C358C05399E1F8A878E6E044F1AB7D82A162C77EE956B0A9B54C910000EF7122CC8BBB1746872968F05E7CFD563");
+			r.Rsa.PublicExponent = 0x010001;
+			Console.WriteLine("GPG Fingerprint: {0}", r.GPG_fingerprint_string);*/
+
             ProgramParameters parms = ProgramParameters.Instance;
             Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
             OptionSet p = new OptionSet()
