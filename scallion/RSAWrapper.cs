@@ -1,6 +1,7 @@
 using System;
 using System.Text;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
@@ -93,24 +94,44 @@ namespace scallion
 			// Packet format: (all big-endian)
 			//	1 byte:     0x99 (fingerprint packet)
 			//  2 bytes:    length of version -> end
-			//  1 byte:     version (0x04)
-			//  1 byte:     algorithm type (0x01 = RSA)
-			//  4 bytes:    timestamp
-			//  X bytes:    MPI of n
-			//  X bytes:    MPI of e
-			int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes; // len from version -> end
-			byte[] v4pkt = new byte[len + 3];
-			byte[] buf;
+			//  X bytes: 	pubkey material
+			byte[] buf = GPG_pubkey_packet(out exp_index);
+
+			byte[] v4pkt = new byte[3 + buf.Length];
 			int idx = 0;
 
 			v4pkt[idx] = 0x99; // 0x99 to start
 			idx++;
 
-			v4pkt[idx] = (byte)((len >> 8) & 0xFFu); // high-order length byte
+			v4pkt[idx] = (byte)((buf.Length >> 8) & 0xFFu); // high-order length byte
 			idx++;
 
-			v4pkt[idx] = (byte)(len & 0xFFu); // low-order length byte
+			v4pkt[idx] = (byte)(buf.Length & 0xFFu); // low-order length byte
 			idx++;
+
+			exp_index += idx;
+
+			Array.Copy(buf, 0, v4pkt, idx, buf.Length);
+
+			return v4pkt;
+		}
+
+		private byte[] GPG_pubkey_packet() {
+			int _;
+			return GPG_pubkey_packet(out _);
+		}
+
+		private byte[] GPG_pubkey_packet(out int exp_index) {
+			// Packet format: (all big-endian)
+			//  1 byte:     version (0x04)
+			//  1 byte:     algorithm type (0x01 = RSA)
+			//  4 bytes:    timestamp
+			//  X bytes:    MPI of n
+			//  X bytes:    MPI of e
+
+			byte[] buf;
+			byte[] v4pkt = new byte[6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes];
+			int idx = 0;
 
 			v4pkt[idx] = 0x04; // version
 			idx++;
@@ -128,7 +149,7 @@ namespace scallion
 			idx += buf.Length;
 
 			// Set the exponent index (out parameter) for later verification
-			exp_index = idx + 2;
+			exp_index = idx + 2; // (2 bytes for MPI length)
 			// KEEP THIS! Valuable for adding new key sizes (although 1024 * X bits seems to be 13)
 			//Console.WriteLine("Exponent should start at byte {0} (byte {1} in final block)", exp_index, exp_index % 64);
 
@@ -139,12 +160,38 @@ namespace scallion
 			return v4pkt;
 		}
 
-		// TODO: Find and remove the garbage 0s at the end of the file
-		// GPG handles 'em fine, so whatever for now.
+		/*// Annoyingly, a key must have a valid (signed) UID for GPG to import it
+		// Yet more hoops to jump through.
+		private IList<byte> GPG_signature_packet() {
+			List<byte> data = new List<byte>();
+
+			byte[] buf;
+
+			data.Add(); // LENGTH
+			data.Add(0x04); // Version
+			data.Add(0x13); // Sig type (Positive certification of a User ID and Public Key packet)
+			data.Add(0x01); // Pub alg (RSA)
+			data.Add(0x08); // Hash alg (SHA256)
+			data.Add(); // HASHED PACKET LENGTHS
+
+			// Add timestamp
+			data.Add(0x05); // Length (1 + 4)
+			data.Add(0x02); // Type (creation time)
+			buf = new byte[4];
+			((BigNumber)Timestamp).ToBytes(buf); // TODO: 2038 bug (this assumes ((BigNumber)Timestamp).Bytes == 4)
+			data.AddRange(buf);
+
+			// Add keyid
+			data.Add(0x09); // Length (1 + 8)
+			data.Add(16);   // Type (issuer)
+			buf = this.GPG_fingerprint;
+			data.AddRange(buf.Skip(buf.Length - 8).Take(8));
+
+			return data;
+		}*/
+
 		private byte[] GPG_privkey_packet() {
 			// Packet format: (all big-endian)
-			//	1 byte:     header (0x80 | ((tag << 2) & 0b00111100) | (length_type & 0b11)) -> tag = 5 for privkey
-			//  1-4 bytes:  packet length (from version -> end)
 			//  1 byte:     version (0x04)
 			//  1 byte:     algorithm type (0x01 = RSA)
 			//  4 bytes:    timestamp
@@ -163,46 +210,8 @@ namespace scallion
 			int len = 6 + 2*2 + Rsa.PublicModulus.Bytes + Rsa.PublicExponent.Bytes +
 					  3 + 2*4 + Rsa.PrivateExponent.Bytes + Rsa.SecretPrimeFactorP.Bytes + Rsa.SecretPrimeFactorQ.Bytes + IPmodQ.Bytes;
 
-			int lenlen = new BigNumber((uint)len).Bytes;
-			buf = new byte[lenlen];
-			new BigNumber((uint)len).ToBytes(buf);
-
-			// Calculate length type
-			byte length_type = 0;
-			switch (lenlen) {
-			case 1:
-				length_type = 0;
-				break;
-			case 2:
-				length_type = 1;
-				break;
-			case 3:
-				// Zero-pad length
-				byte[] temp = new byte[4];
-				Array.Copy(buf, 0, temp, 1, 3);
-				temp[0] = 0;
-				buf = temp;
-				length_type = 2;
-				break;
-			case 4:
-				length_type = 2;
-				break;
-			default:
-				throw new Exception("Invalid length.");
-			}
-
-			// Calclulate packet header
-			//System.Diagnostics.Debugger.Break();
-			byte tag = 5;
-			byte header = (byte)(0x80 | ((tag << 2) & 0x3C) | (length_type & 0x03));
-
-			byte[] v4pkt = new byte[len + buf.Length + 1];
+			byte[] v4pkt = new byte[len];
 			int idx = 0;
-
-			// Copy the header and length into the packet
-			v4pkt[0] = header;
-			Array.Copy(buf, 0, v4pkt, 1, buf.Length);
-			idx += 1 + buf.Length;
 
 			v4pkt[idx] = 0x04; // version
 			idx += 1;
@@ -261,6 +270,58 @@ namespace scallion
 			return v4pkt;
 		}
 
+		private byte[] Packetize(byte tag, byte[] data) {
+			// Packet format: (all big-endian)
+			//	1 byte:     header (0x80 | ((tag << 2) & 0b00111100) | (length_type & 0b11)) -> tag = 5 for privkey
+			//  1-4 bytes:  packet length (of data)
+			int len = data.Length;
+
+			int lenlen = new BigNumber((uint)len).Bytes;
+			byte[] buf = new byte[lenlen];
+			new BigNumber((uint)len).ToBytes(buf);
+
+			// Calculate length type
+			byte length_type = 0;
+			switch (lenlen) {
+				case 1:
+					length_type = 0;
+					break;
+				case 2:
+					length_type = 1;
+					break;
+				case 3:
+					// Zero-pad length
+					byte[] temp = new byte[4];
+					Array.Copy(buf, 0, temp, 1, 3);
+					temp[0] = 0;
+					buf = temp;
+					length_type = 2;
+					break;
+				case 4:
+					length_type = 2;
+					break;
+				default:
+					throw new Exception("Invalid length.");
+			}
+
+			// Calclulate packet header
+			byte header = (byte)(0x80 | ((tag << 2) & 0x3C) | (length_type & 0x03));
+
+			byte[] outdata = new byte[len + 1 + lenlen];
+			int idx = 0;
+
+			outdata[idx] = header;
+			idx++;
+
+			Array.Copy(buf, 0, outdata, idx, buf.Length);
+			idx += buf.Length;
+
+			Array.Copy(data, 0, outdata, idx, data.Length);
+			idx += data.Length;
+
+			return outdata;
+		}
+
 		static IEnumerable<string> ChunksUpto(string str, int maxChunkSize) {
 			for (int i = 0; i < str.Length; i += maxChunkSize) 
 				yield return str.Substring(i, Math.Min(maxChunkSize, str.Length-i));
@@ -280,7 +341,19 @@ namespace scallion
 
 		public string GPG_privkey_export {
 			get {
-				return ascii_armor(GPG_privkey_packet(), "PGP PRIVATE KEY BLOCK");
+				byte[] privkey = Packetize(5, GPG_privkey_packet());
+				byte[] uid = Packetize(13, System.Text.UTF8Encoding.UTF8.GetBytes("Scallion UID (replace me)"));
+
+				byte[] concat = new byte[privkey.Length + uid.Length];
+				int idx = 0;
+
+				Array.Copy(privkey, 0, concat, idx, privkey.Length);
+				idx += privkey.Length;
+
+				Array.Copy(uid, 0, concat, idx, uid.Length);
+				idx += uid.Length;
+
+				return ascii_armor(concat, "PGP PRIVATE KEY BLOCK");
 			}
 		}
 
@@ -502,4 +575,5 @@ namespace scallion
 		}
 	}
 }
+
 

@@ -107,7 +107,7 @@ def pktize(tag, byts):
 
     return pkt
 
-print armor(pktize(5, rsa_privkey_pkt(n,e,t,d,p,q,u)))
+print armor(pktize(5, rsa_privkey_pkt(n,e,t,d,p,q,u))+ pktize(13, "Test Key <test@example.com>"))
 
 
 #pkt = rsapkt(n, e, t)

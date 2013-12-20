@@ -623,11 +623,21 @@ namespace scallion
 					{
 						try
 						{
-							input.Rsa.Rsa.PublicExponent = (BigNumber)result;
+							input.Rsa.ChangePublicExponent((BigNumber)result);
+							//input.Rsa.Rsa.PublicExponent = (BigNumber)result;
 
 							// TODO :Real code
 							Console.WriteLine("Found key with fingerprint: {0}", input.Rsa.GPG_fingerprint_string);
+							Console.WriteLine("Exponent: {0}", input.Rsa.Rsa.PublicExponent);
+							Console.WriteLine("Secret Exponent: {0}", input.Rsa.Rsa.PrivateExponent);
+							
 							System.IO.File.WriteAllText(String.Format("/tmp/{0}.sec.asc", input.Rsa.GPG_fingerprint_string), input.Rsa.GPG_privkey_export);
+
+							/*if (input.Rsa.HasPrivateKey) {
+								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+								Console.WriteLine();
+							}*/
+
 							success = true;
 
 							/*
