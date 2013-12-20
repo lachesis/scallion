@@ -6,7 +6,7 @@ Scallion runs on Mono (tested in Arch Linux) and .NET 3.5 (tested on Windows 7 a
 
 Scallion is currently in beta stage and under active development. Nevertheless, we feel that it is ready for use. Improvements are expected primarily in performance, user interface, and ease of installation, not in the overall algorithm used to generate keys.
 
-Scallion is available under the MIT licence. If you use code from this project in your own projects, we'd appreciate hearing about it at scallion@aftbit.com.
+Scallion is available under the MIT licence. If you use code from this project in your own projects, we'd appreciate hearing about it at scallion@aftbit.com. If you have any issues, please open a ticket here. You might also try the #scallion channel on freenode.
 
 **Note**: I am now generating addresses using the [secure remote generation](#SRKG) feature for a [small fee](saas.md).
 
