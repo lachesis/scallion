@@ -67,5 +67,19 @@ namespace scallion
 			c = Rotate5(c);
 			return (uint)((((((OFFSET_BASIS ^ a) * FNV_PRIME) ^ b) * FNV_PRIME) ^ c) * FNV_PRIME);
 		}
+        public static uint FNVHash(uint[] data)
+        {
+            uint hash = OFFSET_BASIS;
+            for (int i = 0; i < data.Length; i++)
+            {
+                hash = (hash ^ Rotate5(data[i])) * FNV_PRIME;
+            }
+            return hash;
+        }
+        public static ushort FNV10(uint[] data)
+        {
+            uint f =  FNVHash(data);
+            return (ushort)(((f >> 10) ^ f) & (uint)1023);
+        }
 	}
 }
