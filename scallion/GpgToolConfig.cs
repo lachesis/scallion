@@ -1,8 +1,9 @@
+/*
 using System;
 
 namespace scallion
 {
-	public class GpgToolConfig : IToolConfig
+	public class GpgToolConfig : ToolConfig
 	{
 		public GpgToolConfig(string pattern)
 		{
@@ -15,4 +16,4 @@ namespace scallion
 		public IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
 	}
 }
-
+*/

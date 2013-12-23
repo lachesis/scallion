@@ -1,18 +1,30 @@
 using System;
+using System.Collections.Generic;
 
 namespace scallion
 {
-	public class OnionToolConfig : IToolConfig
+	public class OnionToolConfig : ToolConfig
 	{
-		public OnionToolConfig(string pattern)
+
+		public OnionToolConfig(string pattern) : base(pattern)
 		{
+            
 		}
 
-		public TimeSpan PredictRuntime(int hashRate);
+        public override TimeSpan PredictRuntime(int hashRate)
+        {
+            throw new NotImplementedException();
+        }
 
-		public bool CheckMatch(RSAWrapper rsa);
+        public override bool CheckMatch(RSAWrapper rsa)
+        {
+            throw new NotImplementedException();
+        }
 
-		public IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
+        public override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
+        {
+            throw new NotImplementedException();
+        }
 	}
 }
 
