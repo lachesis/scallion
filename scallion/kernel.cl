@@ -16,11 +16,12 @@ GENERATED__CONSTANTS
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
-#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
+#define fnv_hash_w3(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
+#define fnv_hash_w5(w1,w2,w3,w4,w5) (uint)((((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME) ^ rotate5(w4)) * FNV_PRIME) ^ rotate5(w5)) * FNV_PRIME)
 
 #define BEGIN_MASK(i) \
-	fnv = fnv_hash((H[0] & BitmaskArray[i*3+0]), (H[1] & BitmaskArray[i*3+1]), (H[2] & BitmaskArray[i*3+2])); \
-	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
+	fnv = fnv_hash_w3((H[0] & BitmaskArray[i*3+0]), (H[1] & BitmaskArray[i*3+1]), (H[2] & BitmaskArray[i*3+2])); \
+	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \  /
 	dataaddr = HashTable[fnv10];
 
 #define CHECK_HASH(j) \

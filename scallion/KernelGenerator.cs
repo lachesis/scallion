@@ -9,7 +9,7 @@ namespace scallion
 {
 	public class KernelGenerator
 	{
-		public static string GenerateKernel(ProgramParameters programParameters, int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern, int numberOfPatterns, int expIndexInBytes)
+		public static string GenerateKernel(ProgramParameters programParameters, ToolConfig toolConfig, int expIndexInBytes)
 		{
 			//Read kernel.cl
 			StringBuilder builder = new StringBuilder();
@@ -18,7 +18,7 @@ namespace scallion
 			//Replace program parms
 			builder.Replace("GENERATED__CONSTANTS", programParameters.CreateDefinesString());
 			//replace checking code
-			builder.Replace("GENERATED__CHECKING_CODE", GenerateCheckingCode(numberOfMasks, numberOfHashesPerKey, Bitmask, Pattern, numberOfPatterns));
+			builder.Replace("GENERATED__CHECKING_CODE", GenerateCheckingCode(toolConfig));
 			// Replace exponent loading code
 			builder.Replace("GENERATED__EXP_LOADING_CODE", GenerateExpLoadingCode(expIndexInBytes));
 			//Return generated kernel
@@ -42,25 +42,39 @@ namespace scallion
 			return builder.ToString();
 		}
 
-		private static string GenerateCheckingCode(int numberOfMasks, int numberOfHashesPerKey, uint[] Bitmask, uint[] Pattern, int numberOfPatterns)
+		private static string GenerateCheckingCode(ToolConfig toolConfig)
 		{
 			StringBuilder builder = new StringBuilder();
 
+			BitmaskPatternsTuple bpt = toolConfig.BitmaskPatterns[0];
+
 			// Makes the checking code do a simple 3-word check for a single pattern
 			// instead of using the hashtable (about 8% faster)
-            if(numberOfMasks == 1 && numberOfHashesPerKey == 1 && numberOfPatterns == 1)
+            if(toolConfig.SinglePattern)
             {
-                builder.AppendLine("if(((H[0] & {0}u) == {1}u) && ((H[1] & {2}u) == {3}u) && ((H[2] & {4}u) == {5}u))",
-                    Bitmask[0],Pattern[0], Bitmask[1],Pattern[1], Bitmask[2],Pattern[2] );
+				builder.Append("if(");
+				builder.Append(Util.Range(toolConfig.NumberOfWords)
+				       .Select(i => String.Format("((H[{0}] & {1}u) == {2}u)", i, bpt.Bitmask[i], bpt.Patterns[0][i]))
+				       .ToDelimitedString(" && "));
+				builder.Append(")\n");
+
                 builder.AppendLine("        Results[get_local_id(0) % ResultsArraySize] = exp;");
             }
             else
             {
-                for (int m = 0; m < numberOfMasks; m++)
+                for (int m = 0; m < toolConfig.NumberOfHashEntriesByMask.Count; m++)
                 {
-                    builder.AppendLine("BEGIN_MASK({0})", m);
-                    builder.AppendLines(Util.Range(numberOfHashesPerKey)
-                        .Select(i => string.Format("    CHECK_HASH({0})", i)));
+					// This chunk of code replaces BEGIN_MASK(m)
+					builder.AppendFormat("fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
+					builder.Append(Util.Range(toolConfig.NumberOfWords)
+					       .Select(i => String.Format("(H[{0}] & BitmaskArray[i*{1}+{0})", i, toolConfig.NumberOfWords))
+					       .ToDelimitedString(","));
+					builder.AppendLine(");");
+					builder.AppendLine("fnv10 = (fnv >> 10 ^ fnv) & 1023u;");
+					builder.AppendLine("dataaddr = HashTable[fnv10];");
+
+					builder.AppendLines(Util.Range(toolConfig.NumberOfHashEntriesByMask[m])
+					       .Select(i => string.Format("    if(DataArray[dataaddr + {0}] == fnv) Results[get_local_id(0) % ResultsArraySize] = exp;", i)));
                 }
             }
 			return builder.ToString();

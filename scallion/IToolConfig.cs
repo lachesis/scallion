@@ -31,6 +31,10 @@ namespace scallion
         {
             get { return BitmaskPatterns[0].Bitmask.Length; }
         }
+		public IList<int> NumberOfHashEntriesByMask
+		{
+			get { return BitmaskPatterns.Select(i => 2).ToList(); } // MAGIC TODO: MAGIC-LESS 
+		}
         public abstract TimeSpan PredictRuntime(int hashRate);
         public abstract bool CheckMatch(RSAWrapper rsa);
         public abstract IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();

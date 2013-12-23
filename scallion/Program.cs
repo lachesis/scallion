@@ -89,6 +89,11 @@ namespace scallion
 					return KernelType.Optimized4;
             }
         }
+
+		/// <summary>
+		/// Reflect every uint or KernelType into the #defines of the kernel.
+		/// </summary>
+		/// <returns>The defines string.</returns>
         public string CreateDefinesString()
         {
             StringBuilder builder = new StringBuilder();
