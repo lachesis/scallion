@@ -12,11 +12,11 @@ namespace scallion
 
     public abstract class ToolConfig
     {
-        protected RegexPattern _regexPattern;
+        protected RegexPattern _regex;
         protected IList<BitmaskPatternsTuple> _bitmaskPatterns;
         public ToolConfig(string pattern)
         {
-            _regexPattern = new RegexPattern(pattern);
+            _regex = new RegexPattern(pattern);
             _bitmaskPatterns = GenerateBitmaskPatterns();
         }
         public bool SinglePattern

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace scallion
 {
@@ -23,7 +24,12 @@ namespace scallion
 
         public override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
         {
-            throw new NotImplementedException();
+            // Create bitmasks array for the GPU
+            var gpu_bitmasks = _regex.GenerateOnionPatternBitmasksForGpu(7) //MIN_CHARS
+                     .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
+                     .SelectMany(t => t).ToArray();
+
+            throw new System.NotImplementedException();
         }
 	}
 }
