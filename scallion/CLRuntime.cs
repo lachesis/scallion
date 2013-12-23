@@ -383,18 +383,18 @@ namespace scallion
             uint[][] all_patterns;
 			int max_items_per_key = 0;
 			{
-				Func<uint[], ushort> fnv =
+				Func<uint[], ushort> fnv10 =
 					(pattern_arr) =>
 					{
 						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
 						f = ((f >> 10) ^ f) & (uint)1023;
 						return (ushort)f;
 					};
-				all_patterns = rp.GenerateOnionPatternsForGpu(7)
+				all_patterns = rp.GenerateOnionPatternsForGpu(MIN_CHARS)
 					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
                     .ToArray();
                 var gpu_dict_list = all_patterns
-					.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0], i[1], i[2])))
+					.Select(i => new KeyValuePair<ushort, uint>(fnv10(i), Util.FNVHash(i[0], i[1], i[2])))
 					.GroupBy(i => i.Key)
 					.OrderBy(i => i.Key)
 					.ToList();
@@ -445,7 +445,9 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 
 			Console.Write("Compiling kernel... ");
-			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
+			ToolConfig toolConfig = new OnionToolConfig("pattern"); // TODO: DEMAGIX
+			string kernel_text = KernelGenerator.GenerateKernel(parms, toolConfig, parms.ExponentIndex);
+			//string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
