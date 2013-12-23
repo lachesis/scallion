@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace scallion
 {
@@ -14,22 +13,20 @@ namespace scallion
 
         public override TimeSpan PredictRuntime(int hashRate)
         {
-            throw new NotImplementedException();
+			// 5 = log_2(32) [for base 32 onion address]
+			var hashes_per_win = _regex.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,5*t.Count(q=>q!='.') - 1)).Sum();
+			long runtime_sec = (long)(hashes_per_win / hashRate);
+			return TimeSpan.FromSeconds(runtime_sec);
         }
 
         public override bool CheckMatch(RSAWrapper rsa)
         {
-            throw new NotImplementedException();
+			return _regex.DoesOnionHashMatchPattern(rsa.OnionHash);
         }
 
         public override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
         {
-            // Create bitmasks array for the GPU
-            var gpu_bitmasks = _regex.GenerateOnionPatternBitmasksForGpu(7) //MIN_CHARS
-                     .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
-                     .SelectMany(t => t).ToArray();
-
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
         }
 	}
 }

@@ -16,7 +16,8 @@ namespace scallion
                 .ToArray();
             _regex = new Regex(regex);
         }
-        public IEnumerable<string> GenerateAllOnionPatternsForRegex()
+        
+		public IEnumerable<string> GenerateAllOnionPatternsForRegex()
         {
             return _regexPatterns.SelectMany(i => i.GenerateAllOnionPatternsForRegex()).Distinct();
         }
