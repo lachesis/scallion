@@ -638,7 +638,7 @@ namespace scallion
 								Console.WriteLine();
 							}*/
 
-							success = true;
+                            if (!parms.ContinueGeneration) success = true;
 
 							/*
 							string onion_hash = input.Rsa.OnionHash;
