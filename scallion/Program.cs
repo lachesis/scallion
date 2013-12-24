@@ -163,8 +163,8 @@ namespace scallion
 		{
 			ProgramParameters parms = ProgramParameters.Instance;
 
-			var rp = new RegexPattern(parms.Regex);
-			ulong hashes_per_win = (ulong)(0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum());
+            var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
+			ulong hashes_per_win = (ulong)(0.5 / rp.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum());
 			ulong hashes_per_key = (CLRuntime.EXP_MAX - CLRuntime.EXP_MIN) / 2;
 			ulong keys_needed = hashes_per_win / hashes_per_key;
 			uint SF = 5;

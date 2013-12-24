@@ -18,9 +18,7 @@ namespace scallion
 				ret[i / 4] = (uint)(padded[i] << 24) | (uint)(padded[i + 1] << 16) | (uint)(padded[i + 2] << 8) | (uint)(padded[i + 3] << 0);
 			return ret;
 		}
-		/// <summary>
-		/// pass in a string where 'x' represents a character that needs to match and '_' represents a character that does not have to match
-		/// </summary>
+
 		public static byte[] CreateBase32Mask(string mask)
 		{
 			return FromBase32Str(Regex.Replace(mask.ToLower(), "[^.]", "7").Replace(".", "a"));

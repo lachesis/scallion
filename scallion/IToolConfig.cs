@@ -6,6 +6,12 @@ namespace scallion
 {
 	public class BitmaskPatternsTuple
 	{
+        public BitmaskPatternsTuple() { }
+        public BitmaskPatternsTuple(uint[] bitmask, IEnumerable<uint[]> patterns)
+        {
+            Bitmask = bitmask;
+            patterns = Patterns.ToList();
+        }
 		public uint[] Bitmask;
 		public IList<uint[]> Patterns;
 	}
@@ -16,7 +22,7 @@ namespace scallion
         protected IList<BitmaskPatternsTuple> _bitmaskPatterns;
         public ToolConfig(string pattern)
         {
-            _regex = new RegexPattern(pattern);
+            _regex = CreateRegexPattern(pattern);
             _bitmaskPatterns = GenerateBitmaskPatterns();
         }
         public bool SinglePattern
@@ -35,9 +41,10 @@ namespace scallion
 		{
 			get { return BitmaskPatterns.Select(i => 2).ToList(); } // MAGIC TODO: MAGIC-LESS 
 		}
+        protected abstract RegexPattern CreateRegexPattern(string pattern);
         public abstract TimeSpan PredictRuntime(int hashRate);
         public abstract bool CheckMatch(RSAWrapper rsa);
-        public abstract IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
+        protected abstract IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
 
     }
 }

@@ -371,10 +371,10 @@ namespace scallion
 			profiler.StartRegion("init");
 
 			// Combine patterns into a single regexp and build one of Richard's objects
-            var rp = new RegexPattern(parms.Regex);
+            var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
 
 			// Create bitmasks array for the GPU
-			var gpu_bitmasks = rp.GenerateOnionPatternBitmasksForGpu(MIN_CHARS)
+			var gpu_bitmasks = rp.GeneratePatternBitmasksForGpu(MIN_CHARS)
 								 .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
 								 .SelectMany(t => t).ToArray();
 			//Create Hash Table
@@ -390,7 +390,7 @@ namespace scallion
 						f = ((f >> 10) ^ f) & (uint)1023;
 						return (ushort)f;
 					};
-				all_patterns = rp.GenerateOnionPatternsForGpu(MIN_CHARS)
+				all_patterns = rp.GeneratePatternsForGpu(MIN_CHARS)
 					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
                     .ToArray();
                 var gpu_dict_list = all_patterns
@@ -452,7 +452,7 @@ namespace scallion
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
 
-			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
+			var hashes_per_win = 0.5 / rp.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 			Console.WriteLine("done.");
 
             //

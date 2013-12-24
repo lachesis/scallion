@@ -1,32 +1,41 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace scallion
 {
 	public class OnionToolConfig : ToolConfig
 	{
 
-		public OnionToolConfig(string pattern) : base(pattern)
-		{
-            
-		}
+        public OnionToolConfig(string pattern) : base(pattern) { }
 
         public override TimeSpan PredictRuntime(int hashRate)
         {
 			// 5 = log_2(32) [for base 32 onion address]
-			var hashes_per_win = _regex.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,5*t.Count(q=>q!='.') - 1)).Sum();
+			var hashes_per_win = _regex.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,5*t.Count(q=>q!='.') - 1)).Sum();
 			long runtime_sec = (long)(hashes_per_win / hashRate);
 			return TimeSpan.FromSeconds(runtime_sec);
         }
 
         public override bool CheckMatch(RSAWrapper rsa)
         {
-			return _regex.DoesOnionHashMatchPattern(rsa.OnionHash);
+			return _regex.DoesHashMatchPattern(rsa.OnionHash);
         }
 
-        public override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
+        protected override RegexPattern CreateRegexPattern(string pattern)
         {
-            throw new System.NotImplementedException();
+            return new RegexPattern(pattern, 16, "abcdefghijklmnopqrstuvwxyz234567");
+        }
+
+        protected override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
+        {
+            return _regex.GeneratePatternsForGpu(7)
+                .GroupBy(i => _regex.ConvertPatternToBitmak(i))
+                .Select(i => new BitmaskPatternsTuple(
+                    TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(i.Key)),
+                    i.Select(j => TorBase32.ToUIntArray(TorBase32.FromBase32Str(j.Replace('.', 'a'))))
+                ))
+                .ToList();
             /*
             //Create Hash Table
             uint[] dataArray;
