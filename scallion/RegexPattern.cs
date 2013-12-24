@@ -48,8 +48,10 @@ namespace scallion
         {
             private readonly List<char[]> _parsedRegex = new List<char[]>();
             private readonly Regex _regex;
+            private readonly int _outputLength;
             public SingleRegexPattern(string regex, int outputLength, string validCharacters)
             {
+                _outputLength = outputLength;
                 //create the regexRegex
                 Regex regexRegex = new Regex(string.Format(@"\[[{0}]*\]|[{0}.]", validCharacters));
                 // parse $ for end and pad it
@@ -90,7 +92,7 @@ namespace scallion
             }
             public IEnumerable<string> GeneratePatternsForGpu(int minCharacters)
             {
-                List<char[]> pattern = "................".ToArray()
+                List<char[]> pattern = (new string('.', _outputLength)).ToArray()
                     .Select(i => new char[] { i }).ToList();
                 var charClasses = _parsedRegex.Enumerate().OrderBy(i => i.Value[0] == '.' ? 666 : i.Value.Length).ToArray();
                 for (int i = 0; i < minCharacters; i++)
