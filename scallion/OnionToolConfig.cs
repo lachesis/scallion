@@ -74,6 +74,25 @@ namespace scallion
             }
             */
         }
+
+		public override uint MinimumExponent {
+			get {
+				return 0x01010001;
+			}
+		}
+
+		public override uint MaximumExponent {
+			get {
+				return 0x7FFFFFFF;
+			}
+		}
+
+		public override byte[] GetPublicKeyData(RSAWrapper rsa, out int exp_index)
+		{
+			byte[] der = rsa.DER;
+			exp_index = der.Length - Util.GetDerLen(MinimumExponent);
+			return der;
+		}
 	}
 }
 

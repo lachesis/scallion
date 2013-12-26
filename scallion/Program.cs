@@ -44,6 +44,8 @@ namespace scallion
 
 		public bool GPGMode = false;
 
+		public ToolConfig ToolConfig = null;
+
 		public int ExponentIndex {
 			get {
 				if (GPGMode) {
@@ -165,7 +167,7 @@ namespace scallion
 
             var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
 			ulong hashes_per_win = (ulong)(0.5 / rp.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum());
-			ulong hashes_per_key = (CLRuntime.EXP_MAX - CLRuntime.EXP_MIN) / 2;
+			ulong hashes_per_key = (parms.ToolConfig.MaximumExponent - parms.ToolConfig.MinimumExponent) / 2;
 			ulong keys_needed = hashes_per_win / hashes_per_key;
 			uint SF = 5;
 

@@ -30,7 +30,7 @@ namespace scallion
         [ObsoleteAttribute("This property is obsolete. Use ConvertPatternToBitmak instead.", false)] 
         public IEnumerable<string> GeneratePatternBitmasksForGpu(int minCharacters)
         {
-            return GeneratePatternsForGpu(minCharacters)
+			return GeneratePatternsForGpu(minCharacters)
                 .Select(i => ConvertPatternToBitmak(i))
                 .Distinct();
         }
@@ -99,7 +99,9 @@ namespace scallion
                 {
                     pattern[charClasses[i].Key] = charClasses[i].Value;
                 }
-                return GeneratePatterns(pattern);
+                var s = GeneratePatterns(pattern);
+				System.Diagnostics.Debugger.Break();
+				return s;
             }
         }
     }

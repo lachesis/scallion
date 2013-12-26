@@ -37,6 +37,11 @@ namespace scallion
         {
             get { return BitmaskPatterns[0].Bitmask.Length; }
         }
+		public IList<int> NumberOfHashEntriesByMask
+		{
+			get { return BitmaskPatterns.Select(i => 2).ToList(); } // MAGIC TODO: MAGIC-LESS 
+		}
+
         public void CreateHashTableAndPackPatterns(out ushort[] hashTable, out uint[] packedPatterns, out int maxKeyCollisions)
         {
             //Dictionary< FNV10 hash of a pattern/patterns , list of patterns >
@@ -44,7 +49,7 @@ namespace scallion
                 .SelectMany(i => i.Patterns)
                 .Select(i => new KeyValuePair<ushort, uint[]>(Util.FNV10(i), i))
                 .GroupBy(i => i.Key)
-                .ToDictionary(i => i.Key,  i => i.Select(j => j.Value).ToList());
+                .ToDictionary(i => i.Key, i => i.Select(j => j.Value).ToList());
 
             int packedPatternsLength = BitmaskPatterns
                 .SelectMany(i => i.Patterns)
@@ -70,10 +75,16 @@ namespace scallion
                 }
             }
         }
-		public int NumberOfMasks
-		{
+        public int NumberOfMasks
+        {
             get { return BitmaskPatterns.Count; }
-		}
+        }
+
+		public abstract uint MinimumExponent { get; }
+		public abstract uint MaximumExponent { get; }
+	
+		public abstract byte[] GetPublicKeyData(RSAWrapper rsa, out int exp_index);
+
         protected abstract RegexPattern CreateRegexPattern(string pattern);
         public abstract TimeSpan PredictRuntime(int hashRate);
         public abstract bool CheckMatch(RSAWrapper rsa);
@@ -81,4 +92,3 @@ namespace scallion
 
     }
 }
-
