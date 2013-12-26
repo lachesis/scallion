@@ -10,7 +10,7 @@ namespace scallion
         public BitmaskPatternsTuple(uint[] bitmask, IEnumerable<uint[]> patterns)
         {
             Bitmask = bitmask;
-            patterns = Patterns.ToList();
+            Patterns = patterns.ToList();
         }
 		public uint[] Bitmask;
 		public IList<uint[]> Patterns;

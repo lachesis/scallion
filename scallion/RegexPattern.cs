@@ -99,9 +99,7 @@ namespace scallion
                 {
                     pattern[charClasses[i].Key] = charClasses[i].Value;
                 }
-                var s = GeneratePatterns(pattern);
-				System.Diagnostics.Debugger.Break();
-				return s;
+                return GeneratePatterns(pattern);
             }
         }
     }
