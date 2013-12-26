@@ -3,6 +3,7 @@ using System.Linq;
 using System.Collections.Generic;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
+using System.Xml.Serialization;
 
 namespace scallion
 {
@@ -14,11 +15,12 @@ namespace scallion
 			PublicModulus = publicModulus;
 		}
 
+        [XmlIgnore]
 		public BigNumber PublicModulus { get; set; }
 
-		/***
-		 * This is for serialization.
-		 */
+        /// <summary>
+        /// This is for serialization!
+        /// </summary>
 		public byte[] PublicModulusBytes
 		{ 
 			get {
@@ -75,14 +77,16 @@ namespace scallion
 		public XmlMatchOutput() { }
 
 		public DateTime GeneratedDate { get; set; }
+        [XmlIgnore]
 		public BigNumber PublicModulus { get; set; }
+        [XmlIgnore]
 		public BigNumber PublicExponent { get; set; }
 		public string Hash { get; set; }
 		public string PrivateKey { get; set; }
-
-		/**
-		 * This is for serialization!
-		 */
+        
+        /// <summary>
+        /// This is for serialization!
+        /// </summary>
 		public byte[] PublicModulusBytes {
 			get {
 				byte[] bytes = new byte[PublicModulus.Bytes];
@@ -95,9 +99,9 @@ namespace scallion
 			}
 		}
 
-		/**
-		 * This is for serialization!
-		 */
+        /// <summary>
+        /// This is for serialization!
+        /// </summary>
 		public byte[] PublicExponentBytes {
 			get {
 				byte[] bytes = new byte[PublicExponent.Bytes];

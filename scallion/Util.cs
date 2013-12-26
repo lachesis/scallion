@@ -3,11 +3,46 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Collections;
+using System.Xml.Serialization;
+using System.IO;
+using System.Xml;
 
 namespace scallion
 {
 	public static class Util
 	{
+        public static string ToXml<T>(T obj)
+        {
+            using (StringWriter writer = new StringWriter())
+            {
+                Util.ToXml(obj, writer);
+                writer.Flush();
+                return writer.ToString();
+            }
+        }
+        public static void ToXml<T>(T obj, TextWriter writer)
+        {
+            XmlWriterSettings settings = new XmlWriterSettings(){
+                OmitXmlDeclaration = true,
+                IndentChars = "  ",
+                Encoding = System.Text.UTF8Encoding.UTF8
+            };
+            XmlWriter xmlWriter = XmlWriter.Create(writer, settings);
+            XmlSerializer ser = new XmlSerializer(typeof(T));
+            ser.Serialize(xmlWriter, obj);
+        }
+        public static T FromXml<T>(TextReader reader)
+        {
+            XmlSerializer ser = new XmlSerializer(typeof(T));
+            return (T)ser.Deserialize(reader);
+        }
+        public static T FromXml<T>(string xml)
+        {
+            using (TextReader reader = new StringReader(xml))
+            {
+                return Util.FromXml<T>(reader);
+            }
+        }
 		public static IEnumerable<KeyValuePair<int, T>> Enumerate<T>(this IEnumerable<T> items)
 		{
 			int index = 0;
