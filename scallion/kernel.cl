@@ -7,8 +7,6 @@
 #define uint64 ulong
 #define int64 long
 
-#define GPG_Test
-
 #define FASTSHA
 
 GENERATED__CONSTANTS

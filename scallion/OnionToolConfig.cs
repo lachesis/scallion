@@ -9,7 +9,7 @@ namespace scallion
 
         public OnionToolConfig(string pattern) : base(pattern) { }
 
-        public override TimeSpan PredictRuntime(int hashRate)
+		public override TimeSpan PredictRuntime(long hashRate)
         {
 			// 5 = log_2(32) [for base 32 onion address]
 			var hashes_per_win = _regex.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,5*t.Count(q=>q!='.') - 1)).Sum();
