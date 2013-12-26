@@ -20,10 +20,23 @@ namespace scallion
     {
         protected RegexPattern _regex;
         protected IList<BitmaskPatternsTuple> _bitmaskPatterns;
+        public ushort[] HashTable { get; private set; }
+        public uint[] PackedPatterns { get; private set; }
+        public int MaxKeyCollisions { get; private set; }
+        public uint[] PackedBitmaks { get; private set; }
+
         public ToolConfig(string pattern)
         {
             _regex = CreateRegexPattern(pattern);
             _bitmaskPatterns = GenerateBitmaskPatterns();
+            ushort[] _hashTable;
+            uint[] _packedPatterns;
+            int _maxKeyCollisions;
+            CreateHashTableAndPackPatterns(out _hashTable, out _packedPatterns, out _maxKeyCollisions);
+            HashTable = _hashTable;
+            PackedPatterns = _packedPatterns;
+            MaxKeyCollisions = _maxKeyCollisions;
+            PackedBitmaks = CreatePackedBitmasks();
         }
         public bool SinglePattern
         {
@@ -42,7 +55,12 @@ namespace scallion
 			get { return BitmaskPatterns.Select(i => 2).ToList(); } // MAGIC TODO: MAGIC-LESS 
 		}
 
-        public void CreateHashTableAndPackPatterns(out ushort[] hashTable, out uint[] packedPatterns, out int maxKeyCollisions)
+        private uint[] CreatePackedBitmasks()
+        {
+            return BitmaskPatterns.SelectMany(i => i.Bitmask).ToArray();
+        }
+
+        private void CreateHashTableAndPackPatterns(out ushort[] hashTable, out uint[] packedPatterns, out int maxKeyCollisions)
         {
             //Dictionary< FNV10 hash of a pattern/patterns , list of patterns >
             Dictionary<ushort, List<uint[]>> patterns = BitmaskPatterns
