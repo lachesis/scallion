@@ -83,7 +83,7 @@
     <Compile Include="CLRuntime.cs" />
     <Compile Include="Profiler.cs" />
     <Compile Include="Util.cs" />
-    <Compile Include="IToolConfig.cs" />
+    <Compile Include="ToolConfig.cs" />
     <Compile Include="GpgToolConfig.cs" />
     <Compile Include="OnionToolConfig.cs" />
   </ItemGroup>
