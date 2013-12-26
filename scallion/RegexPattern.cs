@@ -54,8 +54,13 @@ namespace scallion
                 _outputLength = outputLength;
                 //create the regexRegex
                 Regex regexRegex = new Regex(string.Format(@"\[[{0}]*\]|[{0}.]", validCharacters));
+
+				// parse ^ for beginning and strip it
+				regex = regex.Trim();
+				if (regex.StartsWith("^"))
+					regex = regex.Substring(1);
                 // parse $ for end and pad it
-                regex = regex.Trim();
+				regex = regex.Trim();
                 if (regex.EndsWith("$"))
                     regex = regex.Substring(0, regex.Length - 1).PadLeft(outputLength, '.');
                 //to lower and replace character classes
