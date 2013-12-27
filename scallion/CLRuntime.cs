@@ -25,7 +25,6 @@ namespace scallion
 		}
 
 		private KernelType kernel_type;
-		private int keySize;
 
 		public static void OutputKey(RSAWrapper rsa)
 		{
@@ -144,7 +143,7 @@ namespace scallion
 					uint exp = parms.ToolConfig.MinimumExponent;
 
 					// Set the exponent in the RSA key
-					// NO SANITY CHECK - just for building a DER
+					// NO SANITY CHECK - just for building a DER/GPG v4 packet
 					input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
 
 					// Get the GPG v4 packet
@@ -211,111 +210,6 @@ namespace scallion
 				Thread.Sleep(50);
 			}
 		}
-		/*private void CreateInputTOR()
-		{
-			ProgramParameters parms = ProgramParameters.Instance;
-
-			while (true)
-			{
-				bool inputQueueIsLow = false;
-				lock (_kernelInput)	{ inputQueueIsLow = _kernelInput.Count < 300; }
-				if (inputQueueIsLow)
-				{
-					int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
-					KernelInput input = new KernelInput(num_exps);
-
-					// Read moduli from file or generate them if possible
-					if (parms.RSAPublicModuli != null)
-					{
-						if (parms.RSAPublicModuli.Count > 0) {
-							input.Rsa.Rsa.PublicModulus = parms.RSAPublicModuli.Dequeue();
-						} else {
-							break;
-						}
-					}
-					else
-					{
-						profiler.StartRegion("generate key");
-						input.Rsa.GenerateKey(keySize); // Generate a key
-						profiler.EndRegion("generate key");
-					}
-
-					// Build DERs and calculate midstates for exponents of representitive lengths
-					profiler.StartRegion("cpu precompute");
-					int cur_exp_num = 0;
-					BigNumber[] Exps = new BigNumber[num_exps];
-					bool skip_flag = false;
-
-					// With EXP_MIN = 0x01010001 and EXP_MAX = 0x7FFFFFFF, only one iteration (i = 4)
-					for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++)
-					{
-						// With i = 4, exp = 0x01000000 (just a placeholder in the DER)
-						ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
-
-						// Set the exponent in the RSA key
-						// NO SANITY CHECK - just for building a DER
-						input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
-						Exps[cur_exp_num] = (BigNumber)exp;
-
-						// Get the DER
-						byte[] der = input.Rsa.DER;
-						int exp_index = der.Length % 64 - i;
-						if(exp_index != parms.ExponentIndex) {
-							Console.WriteLine("Exponent index doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-						if(i != 4) { // exponent length assumed to be 4 in the kernel
-							Console.WriteLine("Exponent length doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-
-						// Put the DER into Ws
-						SHA1 Sha1 = new SHA1();
-						List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
-
-						// Put all but the last block through the hash
-						Ws.Take(Ws.Count - 1).Select((t) =>
-						{
-							Sha1.SHA1_Block(t);
-							return t;
-						}).ToArray();
-
-						// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
-						Sha1.H.CopyTo(input.Midstates, 5 * cur_exp_num);
-						Ws.Last().Take(16).ToArray().CopyTo(input.LastWs, 16 * cur_exp_num);
-						input.ExpIndexes[cur_exp_num] = exp_index;
-
-						// Increment the current exponent size
-						cur_exp_num++;
-						break;
-					}
-					profiler.EndRegion("cpu precompute");
-
-					if(skip_flag) continue; // we got a bad key - don't enqueue it
-
-					List<KernelInput> inputs = new List<KernelInput>();
-					inputs.Add(input);
-					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
-					{
-						//profiler.StartRegion("generate key");
-						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
-						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
-						//profiler.EndRegion("generate key");
-					}
-					lock (_kernelInput)//put input on queue
-					{
-						foreach (KernelInput i in inputs)
-						{
-							_kernelInput.Push(i);
-						}
-					}
-					continue;//skip the sleep cause we might be really low
-				}
-				Thread.Sleep(50);
-			}
-		}*/
 
 		private TimeSpan PredictedRuntime(double hashes_per_win, long speed)
 		{
@@ -340,7 +234,6 @@ namespace scallion
 			int workSize = (int)parms.WorkSize;
 			int numThreadsCreateWork = (int)parms.CpuThreads;
 			KernelType kernelt = parms.KernelType;
-			int keysize = (int)parms.KeySize;
 
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;

@@ -108,5 +108,7 @@ namespace scallion
         public abstract bool CheckMatch(RSAWrapper rsa);
         protected abstract IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
 
+		public abstract string PrivateKeyToString(RSAWrapper rsa);
+		public abstract string HashToString(RSAWrapper rsa);
     }
 }

@@ -93,6 +93,16 @@ namespace scallion
 			exp_index = der.Length - Util.GetDerLen(MinimumExponent);
 			return der;
 		}
+
+		public override string PrivateKeyToString(RSAWrapper rsa)
+		{
+			return rsa.Rsa.PrivateKeyAsPEM;
+		}
+
+		public override string HashToString(RSAWrapper rsa)
+		{
+			return rsa.OnionHash + ".onion";
+		}
 	}
 }
 

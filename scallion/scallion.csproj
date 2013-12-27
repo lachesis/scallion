@@ -86,6 +86,7 @@
     <Compile Include="ToolConfig.cs" />
     <Compile Include="GpgToolConfig.cs" />
     <Compile Include="OnionToolConfig.cs" />
+    <Compile Include="DataInterchange.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">
