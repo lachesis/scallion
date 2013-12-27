@@ -2,6 +2,7 @@
 bin
 obj
 *.dll
+*.dll.mdb
 *.pdb
 *.suo
 *.userprefs
