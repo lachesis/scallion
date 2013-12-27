@@ -4,6 +4,7 @@ obj
 *.dll
 *.pdb
 *.suo
+*.userprefs
 
 # mstest test results
 TestResults
