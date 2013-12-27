@@ -355,52 +355,6 @@ namespace scallion
 				parms.ToolConfig = new OnionToolConfig(parms.Regex);
 			}
 
-			// Combine patterns into a single regexp and build one of Richard's objects
-            var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
-
-			// Create bitmasks array for the GPU
-			var gpu_bitmasks = rp.GeneratePatternBitmasksForGpu(MIN_CHARS)
-								 .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
-								 .SelectMany(t => t).ToArray();
-			//Create Hash Table
-			uint[] dataArray;
-			ushort[] hashTable;
-            uint[][] all_patterns;
-			int max_items_per_key = 0;
-			{
-				Func<uint[], ushort> fnv10 =
-					(pattern_arr) =>
-					{
-						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
-						f = ((f >> 10) ^ f) & (uint)1023;
-						return (ushort)f;
-					};
-				all_patterns = rp.GeneratePatternsForGpu(MIN_CHARS)
-					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
-                    .ToArray();
-                var gpu_dict_list = all_patterns
-					.Select(i => new KeyValuePair<ushort, uint>(fnv10(i), Util.FNVHash(i[0], i[1], i[2])))
-					.GroupBy(i => i.Key)
-					.OrderBy(i => i.Key)
-					.ToList();
-
-				dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
-				hashTable = new ushort[1024]; //item 1 index, item 2 length
-				int currIndex = 0;
-				foreach (var item in gpu_dict_list)
-				{
-					int len = item.Count();
-					hashTable[item.Key] = (ushort)currIndex;
-					currIndex += len;
-					if(len > max_items_per_key) max_items_per_key = len;
-				}
-
-				Console.WriteLine("Putting {0} patterns into {1} buckets.",currIndex,gpu_dict_list.Count);
-			}
-
-			// Set the key size
-			keySize = keysize;
-
 			// Find kernel name and check key size
 			kernel_type = kernelt;
 			string kernelFileName = null, kernelName = null;
@@ -430,14 +384,12 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 
 			Console.Write("Compiling kernel... ");
-			ToolConfig toolConfig = new OnionToolConfig("pattern"); // TODO: DEMAGIX
-			string kernel_text = KernelGenerator.GenerateKernel(parms, toolConfig, parms.ExponentIndex);
+			string kernel_text = KernelGenerator.GenerateKernel(parms, parms.ToolConfig, parms.ExponentIndex);
 			//string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
 
-			var hashes_per_win = 0.5 / rp.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 			Console.WriteLine("done.");
 
             //
@@ -511,9 +463,9 @@ namespace scallion
 			CLBuffer<uint> bufDataArray;
 			CLBuffer<uint> bufBitmasks;
 			{
-				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, hashTable);
-				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, dataArray);
-				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, gpu_bitmasks);
+				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.HashTable);
+				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedPatterns);
+				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedBitmaks);
 			}
 			//Set kernel arguments
 			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
@@ -592,7 +544,7 @@ namespace scallion
 				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}  ", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
-				              PredictedRuntime(hashes_per_win,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
+				              parms.ToolConfig.PredictRuntime(hashes * 1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
 				/*input.Rsa.Rsa.PublicExponent = (BigNumber)input.Results[5];
@@ -614,11 +566,8 @@ namespace scallion
 							//input.Rsa.Rsa.PublicExponent = (BigNumber)result;
 
 							// TODO :Real code
-							Console.WriteLine("Found key with fingerprint: {0}", input.Rsa.GPG_fingerprint_string);
-							Console.WriteLine("Exponent: {0}", input.Rsa.Rsa.PublicExponent);
-							Console.WriteLine("Secret Exponent: {0}", input.Rsa.Rsa.PrivateExponent);
-							
-							System.IO.File.WriteAllText(String.Format("/tmp/{0}.sec.asc", input.Rsa.GPG_fingerprint_string), input.Rsa.GPG_privkey_export);
+							//Console.WriteLine("Found key with fingerprint: {0}", input.Rsa.GPG_fingerprint_string);
+							//System.IO.File.WriteAllText(String.Format("/tmp/{0}.sec.asc", input.Rsa.GPG_fingerprint_string), input.Rsa.GPG_privkey_export);
 
 							/*if (input.Rsa.HasPrivateKey) {
 								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
@@ -627,17 +576,17 @@ namespace scallion
 
                             if (!parms.ContinueGeneration) success = true;
 
-							/*
+							//////
 							string onion_hash = input.Rsa.OnionHash;
 							Console.WriteLine("CPU checking hash: {0}",onion_hash);
 
-							if (rp.DoesOnionHashMatchPattern(onion_hash))
+							if (parms.ToolConfig.CheckMatch(input.Rsa))
 							{
 								input.Rsa.ChangePublicExponent(result);
 								OutputKey(input.Rsa);
 
                                 if (!parms.ContinueGeneration) success = true;
-							}*/
+							}
 						}
 						catch (OpenSslException /*ex*/) { }
 					}

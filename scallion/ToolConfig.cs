@@ -104,7 +104,7 @@ namespace scallion
 		public abstract byte[] GetPublicKeyData(RSAWrapper rsa, out int exp_index);
 
         protected abstract RegexPattern CreateRegexPattern(string pattern);
-        public abstract TimeSpan PredictRuntime(int hashRate);
+        public abstract TimeSpan PredictRuntime(long hashRate);
         public abstract bool CheckMatch(RSAWrapper rsa);
         protected abstract IList<BitmaskPatternsTuple> GenerateBitmaskPatterns();
 

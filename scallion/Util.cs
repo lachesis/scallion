@@ -36,7 +36,7 @@ namespace scallion
 		{
 			for (int i = min; i < max; i++)
 			{
-				yield return min;
+				yield return i;
 			}
 		}
 		public static string ToDelimitedString(this IEnumerable items, string delimiter)
