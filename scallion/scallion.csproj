@@ -72,7 +72,6 @@
     </Compile>
     <Compile Include="KernelGenerator.cs" />
     <Compile Include="RegexPattern.cs" />
-    <Compile Include="ObjectDumper.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
