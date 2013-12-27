@@ -294,11 +294,6 @@ namespace scallion
         {
 			OpenSSL.Core.ThreadInitialization.InitializeThreads();
 
-			/*RSAWrapper r = new RSAWrapper();
-			r.GenerateKey(4096);
-			File.WriteAllText("/tmp/test.asc", r.GPG_privkey_export);
-			Console.WriteLine("Wrote out key with fingerprint: {0}", r.GPG_fingerprint_string);*/
-
 			// TODO: Clean up gpg fingerprint test and move it elsewhere
 			/*RSAWrapper r = new RSAWrapper();
 			r.Timestamp = 1387430955;

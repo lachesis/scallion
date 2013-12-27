@@ -25,7 +25,8 @@ namespace scallion
             XmlWriterSettings settings = new XmlWriterSettings(){
                 OmitXmlDeclaration = true,
                 IndentChars = "  ",
-                Encoding = System.Text.UTF8Encoding.UTF8
+                Encoding = System.Text.UTF8Encoding.UTF8,
+				Indent = true
             };
             XmlWriter xmlWriter = XmlWriter.Create(writer, settings);
             XmlSerializer ser = new XmlSerializer(typeof(T));

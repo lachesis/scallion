@@ -455,8 +455,8 @@ namespace scallion
 					{
 						try
 						{
-							input.Rsa.ChangePublicExponent((BigNumber)result);
-							//input.Rsa.Rsa.PublicExponent = (BigNumber)result;
+							// Change the exponent (just so .CheckMatch will work, no sanity checks!)
+							input.Rsa.Rsa.PublicExponent = (BigNumber)result;
 
 							// TODO :Real code
 							//Console.WriteLine("Found key with fingerprint: {0}", input.Rsa.GPG_fingerprint_string);
@@ -467,16 +467,26 @@ namespace scallion
 								Console.WriteLine();
 							}*/
 
-                            if (!parms.ContinueGeneration) success = true;
-
-							//////
-							string onion_hash = input.Rsa.OnionHash;
-							Console.WriteLine("CPU checking hash: {0}",onion_hash);
+                            //////
+							//Console.WriteLine("CPU checking hash: {0}",onion_hash);
 
 							if (parms.ToolConfig.CheckMatch(input.Rsa))
 							{
 								input.Rsa.ChangePublicExponent(result);
-								OutputKey(input.Rsa);
+								XmlMatchOutput match = new XmlMatchOutput();
+
+								match.GeneratedDate = DateTime.UtcNow;
+								match.PublicModulus = input.Rsa.Rsa.PublicModulus;
+								match.PublicExponent = input.Rsa.Rsa.PublicExponent;
+								match.Hash = parms.ToolConfig.HashToString(input.Rsa);
+
+								if (input.Rsa.HasPrivateKey) {
+									match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
+								}
+
+								Console.WriteLine(Util.ToXml(match));
+
+								//OutputKey(input.Rsa);
 
                                 if (!parms.ContinueGeneration) success = true;
 							}
