@@ -27,25 +27,6 @@ namespace scallion
 		private KernelType kernel_type;
 		private int keySize;
 
-		static private int get_der_len(ulong val)
-		{
-			if(val == 0) return 1;
-			ulong tmp = val;
-			int len = 0;
-
-			// Find the length of the value
-			while(tmp != 0) {
-				tmp >>= 8;
-				len++;
-			}
-
-			// if the top bit of the number is set, we need to prepend 0x00
-			if(((val >> 8*(len-1)) & 0x80) == 0x80)
-				len++;
-
-			return len;
-		}
-
 		public static void OutputKey(RSAWrapper rsa)
 		{
 			ProgramParameters parms = ProgramParameters.Instance;
@@ -116,7 +97,7 @@ namespace scallion
 				Midstates = new uint[num_exps * 5];
 				ExpIndexes = new int[num_exps];
 				Results = new uint[128];
-				BaseExp = EXP_MIN;
+				BaseExp = ProgramParameters.Instance.ToolConfig.MinimumExponent;
 			}
 			public readonly uint[] LastWs;
 			public readonly uint[] Midstates;
@@ -125,10 +106,7 @@ namespace scallion
 			public readonly uint[] Results;
 			public readonly uint BaseExp;
 		}
-		//public const uint EXP_MIN = 0x01010001;
-		//public const uint EXP_MAX = 0x7FFFFFFF;
-		public const uint EXP_MIN = 0x80010001;
-		public const uint EXP_MAX = 0xFFFFFFFF;
+
 		public bool Abort = false;
 		private RandomList<KernelInput> _kernelInput = new RandomList<KernelInput>();
 		private void CreateInput()
@@ -155,25 +133,24 @@ namespace scallion
 					else
 					{
 						profiler.StartRegion("generate key");
-						input.Rsa.GenerateKey(keySize); // Generate a key
+						input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
 						profiler.EndRegion("generate key");
 					}
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
-					BigNumber[] Exps = new BigNumber[1];
 					bool skip_flag = false;
 
-					ulong exp = EXP_MIN;
+					uint exp = parms.ToolConfig.MinimumExponent;
 
 					// Set the exponent in the RSA key
 					// NO SANITY CHECK - just for building a DER
 					input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
-					Exps[0] = (BigNumber)exp;
 
 					// Get the GPG v4 packet
 					int exp_index;
-					byte[] data = input.Rsa.GPG_v4Packet(out exp_index);
+					byte[] data = parms.ToolConfig.GetPublicKeyData(input.Rsa, out exp_index);
+					//byte[] data = input.Rsa.GPG_v4Packet(out exp_index);
 					exp_index %= 64; // SHA-1 block size
 				
 					if(exp_index != parms.ExponentIndex) {
@@ -210,15 +187,16 @@ namespace scallion
 					inputs.Add(input);
 
 					// Stretch the key for multiple exponents (if more than one kernel iteration (work group?) will be needed)
-					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
+					for (uint i = 1; i < (parms.ToolConfig.MaximumExponent - parms.ToolConfig.MinimumExponent) / 2 / workSize - 1; i++)
 					{
 						//profiler.StartRegion("generate key");
-						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
-						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
+						if(parms.ToolConfig.MinimumExponent + workSize * 2 * i >= parms.ToolConfig.MaximumExponent)
+							throw new ArgumentException("base_exp > EXP_MAX");
+						inputs.Add(new KernelInput(input, parms.ToolConfig.MinimumExponent + workSize * 2 * i));
 						//profiler.EndRegion("generate key");
 					}
 
-					// TODO: Stretch the key for multiple time stamps
+					// TODO: Stretch the key for multiple time stamps for GPG
 
 					lock (_kernelInput)//put input on queue
 					{
@@ -233,7 +211,7 @@ namespace scallion
 				Thread.Sleep(50);
 			}
 		}
-		private void CreateInputTOR()
+		/*private void CreateInputTOR()
 		{
 			ProgramParameters parms = ProgramParameters.Instance;
 
@@ -337,7 +315,7 @@ namespace scallion
 				}
 				Thread.Sleep(50);
 			}
-		}
+		}*/
 
 		private TimeSpan PredictedRuntime(double hashes_per_win, long speed)
 		{
@@ -351,8 +329,8 @@ namespace scallion
 		private List<Thread> inputThreads = new List<Thread>();
 
 		const int MIN_CHARS = 7;
-		const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
-		const uint BIT_TABLE_WORD_SIZE = 32;
+		//const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
+		//const uint BIT_TABLE_WORD_SIZE = 32;
 
 		public void Run(ProgramParameters parms)
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
@@ -369,6 +347,13 @@ namespace scallion
 			profiler = new Profiler();
 			#region init
 			profiler.StartRegion("init");
+
+			// Create a tool config
+			if (parms.GPGMode) {
+				//parms.ToolConfig = new GpgToolConfig(parms.Regex);
+			} else {
+				parms.ToolConfig = new OnionToolConfig(parms.Regex);
+			}
 
 			// Combine patterns into a single regexp and build one of Richard's objects
             var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
@@ -510,7 +495,7 @@ namespace scallion
 			CLBuffer<int> bufExpIndexes;
 			CLBuffer<uint> bufResults;
 			{
-				int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
+				int num_exps = 1;
 				uint[] LastWs = new uint[num_exps * 16];
 				uint[] Midstates = new uint[num_exps * 5];
 				int[] ExpIndexes = new int[num_exps];
@@ -535,8 +520,8 @@ namespace scallion
 			kernel.SetKernelArg(0, bufLastWs);
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufResults);
-			kernel.SetKernelArg(3, (uint)EXP_MIN);
-			kernel.SetKernelArg(4, (byte)get_der_len(EXP_MIN));
+			kernel.SetKernelArg(3, (uint)parms.ToolConfig.MinimumExponent);
+			kernel.SetKernelArg(4, (byte)parms.ExponentIndex); // TODO: This is in like 4 places...
 			kernel.SetKernelArg(5, bufExpIndexes);
 			kernel.SetKernelArg(6, bufBitmasks);
 			kernel.SetKernelArg(7, bufHashTable);

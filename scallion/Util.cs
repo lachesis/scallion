@@ -81,5 +81,24 @@ namespace scallion
             uint f =  FNVHash(data);
             return (ushort)(((f >> 10) ^ f) & (uint)1023);
         }
+
+		// Get the length of the ulong `val` represented as a DER integer
+		public static int GetDerLen(ulong val) {
+			if(val == 0) return 1;
+			ulong tmp = val;
+			int len = 0;
+
+			// Find the length of the value
+			while(tmp != 0) {
+				tmp >>= 8;
+				len++;
+			}
+
+			// if the top bit of the number is set, we need to prepend 0x00
+			if(((val >> 8*(len-1)) & 0x80) == 0x80)
+				len++;
+
+			return len;
+		}
 	}
 }

@@ -41,6 +41,12 @@ namespace scallion
 		{
 			get { return BitmaskPatterns.Select(i => 2).ToList(); } // MAGIC TODO: MAGIC-LESS 
 		}
+
+		public abstract uint MinimumExponent { get; }
+		public abstract uint MaximumExponent { get; }
+	
+		public abstract byte[] GetPublicKeyData(RSAWrapper rsa, out int exp_index);
+
         protected abstract RegexPattern CreateRegexPattern(string pattern);
         public abstract TimeSpan PredictRuntime(int hashRate);
         public abstract bool CheckMatch(RSAWrapper rsa);

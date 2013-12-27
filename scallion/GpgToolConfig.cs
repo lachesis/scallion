@@ -1,6 +1,9 @@
 /*
 using System;
 
+		public const uint EXP_MIN = 0x80010001;
+		public const uint EXP_MAX = 0xFFFFFFFF;
+
 namespace scallion
 {
 	public class GpgToolConfig : ToolConfig
