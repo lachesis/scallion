@@ -31,7 +31,7 @@ namespace scallion
 
 		protected override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
 		{
-			return _regex.GeneratePatternsForGpu(7)
+			return _regex.GeneratePatternsForGpu(14)
 					.GroupBy(i => _regex.ConvertPatternToBitmak(i))
 					.Select(i => {
 						uint[] bitmask = TorBase32.ToUIntArray(BigNumber.FromHexString(
