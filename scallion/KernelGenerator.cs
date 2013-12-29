@@ -54,7 +54,12 @@ namespace scallion
             {
 				builder.Append("if(");
 				builder.Append(Util.Range(toolConfig.NumberOfWords)
-				       .Select(i => String.Format("((H[{0}] & {1}u) == {2}u)", i, bpt.Bitmask[i], bpt.Patterns[0][i]))
+				       .Select(i => {
+                           if (bpt.Bitmask[i] == 0 && bpt.Patterns[0][i] == 0)//This optimizes the case where x&0 == 0
+                               return null;
+                           return String.Format("((H[{0}] & {1}u) == {2}u)", i, bpt.Bitmask[i], bpt.Patterns[0][i]);
+                       })
+                       .Where(i => i != null)
 				       .ToDelimitedString(" && "));
 				builder.Append(")\n");
 
@@ -64,6 +69,7 @@ namespace scallion
             {
                 for (int m = 0; m < toolConfig.NumberOfMasks; m++)
                 {
+                    //TODO: apply optimization "This optimizes the case where x&0 == 0"
 					// This chunk of code replaces BEGIN_MASK(m)
 					builder.AppendFormat("fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
 					builder.Append(Util.Range(toolConfig.NumberOfWords)
