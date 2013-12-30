@@ -27,11 +27,13 @@ namespace scallion
                 OmitXmlDeclaration = true,
                 IndentChars = "  ",
                 Encoding = System.Text.UTF8Encoding.UTF8,
-				Indent = true
+                Indent = true
             };
             XmlWriter xmlWriter = XmlWriter.Create(writer, settings);
+            XmlSerializerNamespaces ns = new XmlSerializerNamespaces();
+            ns.Add("", "");
             XmlSerializer ser = new XmlSerializer(typeof(T));
-            ser.Serialize(xmlWriter, obj);
+            ser.Serialize(xmlWriter, obj, ns);
         }
         public static T FromXml<T>(TextReader reader)
         {
