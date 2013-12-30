@@ -33,10 +33,16 @@ namespace scallion
 		{
 			return _regex.GeneratePatternsForGpu(7)
 					.GroupBy(i => _regex.ConvertPatternToBitmak(i))
-					.Select(i => new BitmaskPatternsTuple(
-						TorBase32.ToUIntArray(BigNumber.FromHexString(Regex.Replace(i.Key.ToLower(), "[^.]", "f").Replace('.', '0')).ToBytes()),
-						i.Select(j => TorBase32.ToUIntArray(BigNumber.FromHexString(j.Replace('.', '0')).ToBytes()))
-						))
+					.Select(i => {
+						uint[] bitmask = TorBase32.ToUIntArray(BigNumber.FromHexString(
+                            Regex.Replace(i.Key.ToLower(), "[^.]", "f").Replace(".", "0")
+						).ToBytes().PadLeft(20)); // 20 bytes = 40 hex chars = 160 bits
+
+                        return new BitmaskPatternsTuple(
+                            bitmask,
+                            i.Select(j => TorBase32.ToUIntArray(BigNumber.FromHexString(j.Replace('.', '0')).ToBytes().PadLeft(20)))
+                        );
+                    })
 					.ToList();
 		}
 

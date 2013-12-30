@@ -84,6 +84,12 @@ namespace scallion
 				yield return i;
 			}
 		}
+		public static T[] PadLeft<T>(this T[] inp, int len)
+		{
+			T[] output = new T[len];
+			Array.Copy(inp, 0, output, output.Length - inp.Length, inp.Length);
+			return output; 
+		}
 		public static string ToDelimitedString(this IEnumerable items, string delimiter)
 		{
 			StringBuilder builder = new StringBuilder();
