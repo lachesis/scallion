@@ -31,16 +31,23 @@ namespace scallion
 
 		protected override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
 		{
+			Func<string, byte[]> hexToBytes = (hex) => {
+				return Enumerable.Range(0, hex.Length)
+					      .Where(x => x % 2 == 0)
+						  .Select(x => Convert.ToByte(hex.Substring(x, 2), 16))
+						  .ToArray();
+			};
+
 			return _regex.GeneratePatternsForGpu(9)
 					.GroupBy(i => _regex.ConvertPatternToBitmak(i))
 					.Select(i => {
-						uint[] bitmask = TorBase32.ToUIntArray(BigNumber.FromHexString(
+						uint[] bitmask = TorBase32.ToUIntArray(hexToBytes(
                             Regex.Replace(i.Key.ToLower(), "[^.]", "f").Replace(".", "0")
-						).ToBytes().PadLeft(20)); // 20 bytes = 40 hex chars = 160 bits
+						).PadLeft(20)); // 20 bytes = 40 hex chars = 160 bits
 
                         return new BitmaskPatternsTuple(
                             bitmask,
-                            i.Select(j => TorBase32.ToUIntArray(BigNumber.FromHexString(j.Replace('.', '0')).ToBytes().PadLeft(20)))
+                            i.Select(j => TorBase32.ToUIntArray(hexToBytes(j.Replace('.', '0')).PadLeft(20)))
                         );
                     })
 					.ToList();
