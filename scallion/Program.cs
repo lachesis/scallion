@@ -294,6 +294,9 @@ namespace scallion
         {
 			OpenSSL.Core.ThreadInitialization.InitializeThreads();
 
+			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("77777777")[0]);
+			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("aaaaaaaa")[0]);
+
 			// TODO: Clean up gpg fingerprint test and move it elsewhere
 			/*RSAWrapper r = new RSAWrapper();
 			r.Timestamp = 1387430955;

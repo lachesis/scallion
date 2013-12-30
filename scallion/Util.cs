@@ -6,6 +6,7 @@ using System.Collections;
 using System.Xml.Serialization;
 using System.IO;
 using System.Xml;
+using OpenSSL.Core;
 
 namespace scallion
 {
@@ -52,6 +53,12 @@ namespace scallion
 				yield return new KeyValuePair<int, T>(index, item);
 				index++;
 			}
+		}
+		public static byte[] ToBytes(this BigNumber bn)
+		{
+			byte[] arr = new byte[bn.Bytes];
+			bn.ToBytes(arr);
+			return arr;
 		}
 		public static void AppendLine(this StringBuilder builder, string format, params object[] args)
 		{

@@ -243,7 +243,7 @@ namespace scallion
 
 			// Create a tool config
 			if (parms.GPGMode) {
-				//parms.ToolConfig = new GpgToolConfig(parms.Regex);
+				parms.ToolConfig = new GpgToolConfig(parms.Regex);
 			} else {
 				parms.ToolConfig = new OnionToolConfig(parms.Regex);
 			}
