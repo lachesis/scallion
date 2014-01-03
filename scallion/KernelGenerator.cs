@@ -73,7 +73,7 @@ namespace scallion
 					// This chunk of code replaces BEGIN_MASK(m)
 					builder.AppendFormat("fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
 					builder.Append(Util.Range(toolConfig.NumberOfWords)
-					       .Select(i => String.Format("(H[{0}] & BitmaskArray[i*{1}+{0}])", i, toolConfig.NumberOfWords))
+					       .Select(i => String.Format("(H[{0}] & BitmaskArray[{2}*{1}+{0}])", i, toolConfig.NumberOfWords, m))
 					       .ToDelimitedString(","));
 					builder.AppendLine(");");
 					builder.AppendLine("    fnv10 = (fnv >> 10 ^ fnv) & 1023u;");
