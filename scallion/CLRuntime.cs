@@ -23,8 +23,7 @@ namespace scallion
 				.Where(i => i.CompilerAvailable)
 				.ToList();
 		}
-
-		private KernelType kernel_type;
+ KernelType kernel_type;
 
 		public static void OutputKey(RSAWrapper rsa)
 		{
@@ -229,6 +228,8 @@ namespace scallion
 		public void Run(ProgramParameters parms)
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
+			HashSet<string> seenMatches = new HashSet<string>();
+
 			int deviceId = (int)parms.DeviceId;
 			int workGroupSize = (int)parms.WorkGroupSize;
 			int workSize = (int)parms.WorkSize;
@@ -480,13 +481,22 @@ namespace scallion
 								match.PublicExponent = input.Rsa.Rsa.PublicExponent;
 								match.Hash = parms.ToolConfig.HashToString(input.Rsa);
 
-								if (input.Rsa.HasPrivateKey) {
-									match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
+								if (!seenMatches.Contains(match.Hash)) {
+									Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);
+
+									seenMatches.Add(match.Hash);
+
+									if (input.Rsa.HasPrivateKey) {
+										match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
+									}
+
+									string xml = Util.ToXml(match);
+									Console.WriteLine(xml);
+									if (parms.KeyOutputPath != null)
+										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
+
+									//OutputKey(input.Rsa);
 								}
-
-								Console.WriteLine(Util.ToXml(match));
-
-								//OutputKey(input.Rsa);
 
                                 if (!parms.ContinueGeneration) success = true;
 							}

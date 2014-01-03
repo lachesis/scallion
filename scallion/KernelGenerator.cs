@@ -73,14 +73,14 @@ namespace scallion
 					// This chunk of code replaces BEGIN_MASK(m)
 					builder.AppendFormat("fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
 					builder.Append(Util.Range(toolConfig.NumberOfWords)
-					       .Select(i => String.Format("(H[{0}] & BitmaskArray[i*{1}+{0})", i, toolConfig.NumberOfWords))
+					       .Select(i => String.Format("(H[{0}] & BitmaskArray[i*{1}+{0}])", i, toolConfig.NumberOfWords))
 					       .ToDelimitedString(","));
 					builder.AppendLine(");");
-					builder.AppendLine("fnv10 = (fnv >> 10 ^ fnv) & 1023u;");
-					builder.AppendLine("dataaddr = HashTable[fnv10];");
+					builder.AppendLine("    fnv10 = (fnv >> 10 ^ fnv) & 1023u;");
+					builder.AppendLine("    dataaddr = HashTable[fnv10];");
 
-					//builder.AppendLines(Util.Range(toolConfig.NumberOfHashEntriesByMask[m])
-					//       .Select(i => string.Format("    if(DataArray[dataaddr + {0}] == fnv) Results[get_local_id(0) % ResultsArraySize] = exp;", i)));
+					builder.AppendLines(Util.Range(toolConfig.MaxKeyCollisions)
+					       .Select(i => string.Format("    if(DataArray[dataaddr + {0}] == fnv) Results[get_local_id(0) % ResultsArraySize] = exp;", i)));
                 }
             }
 			return builder.ToString();

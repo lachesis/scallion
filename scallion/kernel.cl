@@ -15,7 +15,7 @@ GENERATED__CONSTANTS
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
 #define fnv_hash_w3(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
-#define fnv_hash_w5(w1,w2,w3,w4,w5) (uint)((((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME) ^ rotate5(w4)) * FNV_PRIME) ^ rotate5(w5)) * FNV_PRIME)
+#define fnv_hash_w5(w1,w2,w3,w4,w5) (uint)((((((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME) ^ rotate5(w4)) * FNV_PRIME) ^ rotate5(w5)) * FNV_PRIME)
 
 #ifdef FASTSHA
 inline uint32 andnot(uint32 a,uint32 b) { return a & ~b; }
