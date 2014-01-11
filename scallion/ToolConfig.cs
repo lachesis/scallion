@@ -59,7 +59,7 @@ namespace scallion
         {
             return BitmaskPatterns.SelectMany(i => i.Bitmask).ToArray();
         }
-        private void CreateHashTableAndPackPatterns(out ushort[] hashTable, out uint[] packedPatterns, out int maxKeyCollisions)
+        private void CreateHashTableAndPackPatterns(out ushort[] hashTable, out uint[] packedPatternFnvs, out int maxKeyCollisions)
         {
             //Dictionary< FNV10 hash of a pattern/patterns , list of patterns >
             Dictionary<ushort, List<uint[]>> patterns = BitmaskPatterns
@@ -70,10 +70,10 @@ namespace scallion
 
             int packedPatternsLength = BitmaskPatterns
                 .SelectMany(i => i.Patterns)
-                .SelectMany(i => i).Count();
+                .Count();
 
             hashTable = new ushort[1024];
-            packedPatterns = new uint[packedPatternsLength];
+            packedPatternFnvs = new uint[packedPatternsLength];
             maxKeyCollisions = 0;
             ushort currentPackedIndex = 0;
             //iterate over all fnv10keys.. add them to hash table and pack their patterns
@@ -87,8 +87,8 @@ namespace scallion
                 //copy patterns to packed patterns
                 foreach (uint[] pattern in patterns[fnv10Key])
                 {
-                    Array.Copy(pattern, 0, packedPatterns, currentPackedIndex, pattern.Length);
-                    currentPackedIndex += (ushort)pattern.Length;
+                    packedPatternFnvs[currentPackedIndex] =  Util.FNVHash(pattern);
+                    currentPackedIndex += 1;
                 }
             }
         }
