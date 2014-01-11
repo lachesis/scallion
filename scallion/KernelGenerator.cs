@@ -71,7 +71,8 @@ namespace scallion
                 {
                     //TODO: apply optimization "This optimizes the case where x&0 == 0"
 					// This chunk of code replaces BEGIN_MASK(m)
-					builder.AppendFormat("fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
+                    builder.AppendLine("    //Bitmask #{0}", m);
+					builder.AppendFormat("    fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
 					builder.Append(Util.Range(toolConfig.NumberOfWords)
 					       .Select(i => String.Format("(H[{0}] & BitmaskArray[{2}*{1}+{0}])", i, toolConfig.NumberOfWords, m))
 					       .ToDelimitedString(","));
