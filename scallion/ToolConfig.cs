@@ -23,7 +23,7 @@ namespace scallion
         public ushort[] HashTable { get; private set; }
         public uint[] PackedPatterns { get; private set; }
         public int MaxKeyCollisions { get; private set; }
-        public uint[] PackedBitmaks { get; private set; }
+        public uint[] PackedBitmasks { get; private set; }
 
         public ToolConfig(string pattern)
         {
@@ -36,7 +36,7 @@ namespace scallion
             HashTable = _hashTable;
             PackedPatterns = _packedPatterns;
             MaxKeyCollisions = _maxKeyCollisions;
-            PackedBitmaks = CreatePackedBitmasks();
+            PackedBitmasks = CreatePackedBitmasks();
         }
         public bool SinglePattern
         {

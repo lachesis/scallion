@@ -289,7 +289,7 @@ namespace scallion
             //
             // Test SHA1 algo
             // 
-            {
+			if (!parms.SkipShaTest) {
                 Console.WriteLine("Testing SHA1 hash...");
 
                 CLKernel shaTestKern = context.CreateKernel(program, "shaTest");
@@ -359,7 +359,7 @@ namespace scallion
 			{
 				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.HashTable);
 				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedPatterns);
-				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedBitmaks);
+				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedBitmasks);
 			}
 			//Set kernel arguments
 			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
@@ -482,9 +482,9 @@ namespace scallion
 								match.Hash = parms.ToolConfig.HashToString(input.Rsa);
 
 								if (!seenMatches.Contains(match.Hash)) {
-									Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);
+									seenMatches.Add(match.Hash);	
 
-									seenMatches.Add(match.Hash);
+									Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);									
 
 									if (input.Rsa.HasPrivateKey) {
 										match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
@@ -495,10 +495,9 @@ namespace scallion
 									if (parms.KeyOutputPath != null)
 										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
 
-									//OutputKey(input.Rsa);
+									if (!parms.ContinueGeneration || (parms.QuitAfterXKeysFound != 0 && seenMatches.Count >= parms.QuitAfterXKeysFound))
+										success = true;
 								}
-
-                                if (!parms.ContinueGeneration) success = true;
 							}
 						}
 						catch (OpenSslException /*ex*/) { }

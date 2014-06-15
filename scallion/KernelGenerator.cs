@@ -17,6 +17,8 @@ namespace scallion
 			builder.Append(File.ReadAllText(kernelFile));
 			//Replace program parms
 			builder.Replace("GENERATED__CONSTANTS", programParameters.CreateDefinesString());
+			//replace arrays
+			builder.Replace("GENERATED__ARRAYS", GenerateArrays(toolConfig));
 			//replace checking code
 			builder.Replace("GENERATED__CHECKING_CODE", GenerateCheckingCode(toolConfig));
 			// Replace exponent loading code
@@ -38,6 +40,27 @@ namespace scallion
 			builder.AppendFormat("W[{0}] |= exp >> {1} & 0x{2:x}u; // OR in the first part of the exp\n", firstWord, (8*offset), mask1);
 			builder.AppendFormat("W[{0}] &= 0x{1:X}u; // AND out the second word\n", firstWord + 1, mask1);
 			builder.AppendFormat("W[{0}] |= exp << {1} & 0x{2:x}u; // OR in the second part of the exp\n", firstWord + 1, (32 - 8*offset), ~mask1);
+
+			return builder.ToString();
+		}
+
+		private static string GenerateArrays(ToolConfig toolConfig)
+		{
+			// Assumes that exponent length is 4 bytes (one uint)
+			StringBuilder builder = new StringBuilder();
+
+			builder.AppendFormat("    uint32 dataArray[{0}] = {{", toolConfig.PackedPatterns.Length);
+			/*var v = toolConfig.PackedPatterns.Enumerate().GroupBy(i => i.Key / 16)
+				.Select(j => j.Select(i => String.Format("0x{0:x8}u",i.Value)).ToDelimitedString(", "));*/
+			builder.Append(toolConfig.PackedPatterns.Select(i => String.Format("0x{0:x8}u",i)).ToDelimitedString(", "));
+			builder.AppendLine("};");
+
+			builder.AppendFormat("    uint16 hashTable[{0}];// = {{", toolConfig.HashTable.Length);
+			//builder.Append(toolConfig.HashTable.Select(i => String.Format("0x{0:x8}u",i)).ToDelimitedString(", "));
+			/*foreach (var grp in toolConfig.HashTable.Enumerate().GroupBy(i => i.Key / 16)) {
+				builder.AppendLine(grp.Select(i => String.Format("0x{0:x8}u",i.Value)).ToDelimitedString(", "));
+			}*/
+			//builder.AppendLine("};");
 
 			return builder.ToString();
 		}
@@ -74,14 +97,14 @@ namespace scallion
                     builder.AppendLine("    //Bitmask #{0}", m);
 					builder.AppendFormat("    fnv = fnv_hash_w{0}(", toolConfig.NumberOfWords);
 					builder.Append(Util.Range(toolConfig.NumberOfWords)
-					       .Select(i => String.Format("(H[{0}] & BitmaskArray[{2}*{1}+{0}])", i, toolConfig.NumberOfWords, m))
+					       .Select(i => String.Format("(H[{0}] & {1}u)", i, toolConfig.PackedBitmasks[m * toolConfig.NumberOfWords + i], m))
 					       .ToDelimitedString(","));
 					builder.AppendLine(");");
 					builder.AppendLine("    fnv10 = (fnv >> 10 ^ fnv) & 1023u;");
-					builder.AppendLine("    dataaddr = HashTable[fnv10];");
+					builder.AppendLine("    dataaddr = hashTable[fnv10];");
 
 					builder.AppendLines(Util.Range(toolConfig.MaxKeyCollisions)
-					       .Select(i => string.Format("    if(DataArray[dataaddr + {0}] == fnv) Results[get_local_id(0) % ResultsArraySize] = exp;", i)));
+					       .Select(i => string.Format("    if(dataArray[dataaddr + {0}] == fnv) Results[get_local_id(0) % ResultsArraySize] = exp;", i)));
                 }
             }
 			return builder.ToString();
