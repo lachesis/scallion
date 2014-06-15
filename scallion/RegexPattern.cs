@@ -11,6 +11,7 @@ namespace scallion
         private readonly Regex _regex;
         public RegexPattern(string regex, int outputLength, string validCharacters)
         {
+			regex = regex.ToLower();
             _regexPatterns = regex.Split(new char[] { '|' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(i => new SingleRegexPattern(i, outputLength, validCharacters))
                 .ToArray();
@@ -27,15 +28,15 @@ namespace scallion
                 .SelectMany(i => i.GeneratePatternsForGpu(minCharacters))
                 .Distinct();
         }
-        [ObsoleteAttribute("This property is obsolete. Use ConvertPatternToBitmak instead.", false)] 
+		[ObsoleteAttribute("This property is obsolete. Use ConvertPatternToBitmask instead.", false)] 
         public IEnumerable<string> GeneratePatternBitmasksForGpu(int minCharacters)
         {
 			return GeneratePatternsForGpu(minCharacters)
-                .Select(i => ConvertPatternToBitmak(i))
+                .Select(i => ConvertPatternToBitmask(i))
                 .Distinct();
         }
         private static Regex _notDotRegex = new Regex("[^.]"); 
-        public string ConvertPatternToBitmak(string pattern)
+        public string ConvertPatternToBitmask(string pattern)
         {
             return _notDotRegex.Replace(pattern, "x");
         }
@@ -47,7 +48,7 @@ namespace scallion
         private class SingleRegexPattern
         {
             private readonly List<char[]> _parsedRegex = new List<char[]>();
-            private readonly Regex _regex;
+            //private readonly Regex _regex;
             private readonly int _outputLength;
             public SingleRegexPattern(string regex, int outputLength, string validCharacters)
             {
@@ -73,7 +74,7 @@ namespace scallion
                 //validate regex
                 if (regexRegex.Matches(regex).Cast<Match>().Sum(i => i.Value.Length) != regex.Length)
                     throw new System.ArgumentException("The passed regex string is not valid!");
-                _regex = new Regex(regex);
+                //_regex = new Regex(regex);
                 //parse regex
                 _parsedRegex =
                     regexRegex.Matches(regex)

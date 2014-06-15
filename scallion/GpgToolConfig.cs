@@ -39,7 +39,7 @@ namespace scallion
 			};
 
 			return _regex.GeneratePatternsForGpu(9)
-					.GroupBy(i => _regex.ConvertPatternToBitmak(i))
+					.GroupBy(i => _regex.ConvertPatternToBitmask(i))
 					.Select(i => {
 						uint[] bitmask = TorBase32.ToUIntArray(hexToBytes(
                             Regex.Replace(i.Key.ToLower(), "[^.]", "f").Replace(".", "0")

@@ -466,7 +466,7 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 	uint32 W[16];
 	uint32 H[5];
 	
-	GENERATED__ARRAYS
+	/*GENERATED__ARRAYS*/
 
 	exp = get_global_id(0) * 2 + BaseExp;
 	

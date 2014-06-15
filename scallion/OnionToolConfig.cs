@@ -30,7 +30,7 @@ namespace scallion
         protected override IList<BitmaskPatternsTuple> GenerateBitmaskPatterns()
         {
             return _regex.GeneratePatternsForGpu(7)
-                .GroupBy(i => _regex.ConvertPatternToBitmak(i))
+                .GroupBy(i => _regex.ConvertPatternToBitmask(i))
                 .Select(i => new BitmaskPatternsTuple(
                     TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(i.Key)),
                     i.Select(j => TorBase32.ToUIntArray(TorBase32.FromBase32Str(j.Replace('.', 'a'))))
