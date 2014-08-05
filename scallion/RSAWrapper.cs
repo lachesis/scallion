@@ -332,7 +332,7 @@ namespace scallion
 			s.AppendLine("-----BEGIN " + tag + "-----");
 			s.AppendLine("Version: Scallion");
 			s.AppendLine();
-			foreach (var str in ChunksUpto(Convert.ToBase64String(input), 78)) {
+			foreach (var str in ChunksUpto(Convert.ToBase64String(input) + "=====", 78)) {
 				s.AppendLine(str);
 			}
 			s.AppendLine("-----END " + tag + "-----");
