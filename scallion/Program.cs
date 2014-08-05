@@ -41,6 +41,8 @@ namespace scallion
         public string Regex = null;
         public string KeyOutputPath = null;
 		public string PIDFile = null;
+        
+        public uint UnixTs = 0;
 
 		public bool SkipShaTest = false;
 		public uint QuitAfterXKeysFound = 0;
@@ -187,7 +189,13 @@ namespace scallion
 				if (i % 100 == 0) {
 					Console.WriteLine("Generating key {0} of {1}...", i, keys_needed*SF);
 				}
-				rsa.GenerateKey((int)parms.KeySize);
+
+                rsa.GenerateKey((int)parms.KeySize);
+
+                if (parms.UnixTs != 0) {
+                    rsa.Timestamp = parms.UnixTs;
+                }
+
 				pub_sw.WriteLine(rsa.Rsa.PublicModulus.ToDecimalString());
 				priv_sw.WriteLine("Public Modulus: " + rsa.Rsa.PublicModulus.ToDecimalString());
 				priv_sw.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
@@ -327,6 +335,7 @@ namespace scallion
                 .Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
 				.Add("skip-sha-test", "Skip the SHA-1 test at startup.", (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
 				.Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
+				.Add<uint>("timestamp=", "Use this value as a timetamp for the RSA key.", (i) => parms.UnixTs = i)
                 .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
                 ;
 

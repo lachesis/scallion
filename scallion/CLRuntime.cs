@@ -132,6 +132,9 @@ namespace scallion
 					{
 						profiler.StartRegion("generate key");
 						input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
+                        if (parms.UnixTs != 0) {
+                            input.Rsa.Timestamp = parms.UnixTs;
+                        }
 						profiler.EndRegion("generate key");
 					}
 
