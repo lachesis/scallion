@@ -14,16 +14,8 @@ GENERATED__CONSTANTS
 // FNV hash: http://isthe.com/chongo/tech/comp/fnv/#FNV-source
 #define OFFSET_BASIS 2166136261u
 #define FNV_PRIME 16777619u
-#define fnv_hash(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
-
-#define BEGIN_MASK(i) \
-	fnv = fnv_hash((H[0] & BitmaskArray[i*3+0]), (H[1] & BitmaskArray[i*3+1]), (H[2] & BitmaskArray[i*3+2])); \
-	fnv10 = (fnv >> 10 ^ fnv) & 1023u; \
-	dataaddr = HashTable[fnv10];
-
-#define CHECK_HASH(j) \
-	if(DataArray[dataaddr+j] == fnv) \
-		Results[get_local_id(0) % ResultsArraySize] = exp;
+#define fnv_hash_w3(w1,w2,w3) (uint)((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME)
+#define fnv_hash_w5(w1,w2,w3,w4,w5) (uint)((((((((((OFFSET_BASIS ^ rotate5(w1)) * FNV_PRIME) ^ rotate5(w2)) * FNV_PRIME) ^ rotate5(w3)) * FNV_PRIME) ^ rotate5(w4)) * FNV_PRIME) ^ rotate5(w5)) * FNV_PRIME)
 
 #ifdef FASTSHA
 inline uint32 andnot(uint32 a,uint32 b) { return a & ~b; }
@@ -473,6 +465,8 @@ __kernel void optimized(__constant uint32* LastWs, __constant uint32* Midstates,
 
 	uint32 W[16];
 	uint32 H[5];
+	
+	/*GENERATED__ARRAYS*/
 
 	exp = get_global_id(0) * 2 + BaseExp;
 	
@@ -497,61 +491,6 @@ __kernel void normal(__constant uint32* LastWs, __constant uint32* Midstates, __
 						uint8 LenStart, __constant int32* ExpIndexes,							
 						__constant uint32* BitmaskArray, __constant uint16* HashTable, __constant uint32* DataArray)
 {
-	uint64 exp;
-	int bytes_needed = 0;
-	uint8 index;
-	uint8 exp_bytes[8];
-	uint64 newexp;
-	uint32 exp_index;
-	int i;
-	int waddr, baddr;
-	
-	uint32 fnv,fnv10;
-	
-	uint16 dataaddr;
-	uint16 datalen;
-
-	uint32 W[80];
-	uint32 H[5];
-
-	exp = get_global_id(0) * 2 + BaseExp;
-	newexp = exp;
-
-	// find number of bytes needed for exp
-    while(newexp != 0) {
-        exp_bytes[bytes_needed] = newexp & (char)0xFF;
-        newexp >>= 8;
-        bytes_needed++;
-    }
-    
-    // if the top bit of the number is set, we need to prepend 0x00
-    if((exp_bytes[bytes_needed-1] & (char)0x80) == (char)0x80)
-        exp_bytes[bytes_needed++] = 0;
-
-	// Load Ws and Midstates into private variables
-	index = bytes_needed - LenStart;
-	for(i=0; i<16; i++)
-		W[i] = LastWs[index*16+i];
-	for(i=0; i<5; i++)
-		H[i] = Midstates[index*5+i];
-	exp_index = ExpIndexes[index];
-	
-	// Load the exponent into the W
-	for(i=bytes_needed-1; i>=0; i--) {
-        waddr = exp_index / 4;
-        baddr = 3 - exp_index % 4;
-        W[waddr] &= ~((uint32)((uint32)0x000000FFu << 8*baddr));
-        W[waddr] |= (((uint32)exp_bytes[i] & 0xFF) << 8*baddr);
-        exp_index++;
-    }
-      
-    // Take the last part of the hash
-	sha1_block(W,H);
-	
-	// Get and check the FNV hash for each bitmask
-	// Uses code generated on the C# side
-	GENERATED__CHECKING_CODE
-
 }
 
 // Test the SHA hash code

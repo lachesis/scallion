@@ -41,17 +41,41 @@ namespace scallion
         public string Regex = null;
         public string KeyOutputPath = null;
 		public string PIDFile = null;
+        
+        public uint UnixTs = 0;
+
+		public bool SkipShaTest = false;
+		public uint QuitAfterXKeysFound = 0;
+
+		public bool GPGMode = false;
+
+		public ToolConfig ToolConfig = null;
 
 		public int ExponentIndex {
 			get {
-				switch (KeySize) {
-				case 4096:
-				case 2048:
-					return 11;
-				case 1024:
-					return 9;
-				default:
-					throw new System.NotImplementedException();
+				if (GPGMode) {
+					switch (KeySize) {
+					case 8192:
+					case 4096:
+					case 2048:
+					case 1024:
+						return 13;
+					case 3192:
+						return 28;
+					default:
+						throw new System.NotImplementedException();
+					}
+				}
+				else {
+					switch (KeySize) {
+					case 4096:
+					case 2048:
+						return 11;
+					case 1024:
+						return 9;
+					default:
+						throw new System.NotImplementedException();
+					}
 				}
 			}
 		}
@@ -68,10 +92,15 @@ namespace scallion
             {
                 if (ProgramMode == Mode.NonOptimized)
                     return KernelType.Normal;
-				return KernelType.Optimized4;
-                throw new System.NotImplementedException();
+				else
+					return KernelType.Optimized4;
             }
         }
+
+		/// <summary>
+		/// Reflect every uint or KernelType into the #defines of the kernel.
+		/// </summary>
+		/// <returns>The defines string.</returns>
         public string CreateDefinesString()
         {
             StringBuilder builder = new StringBuilder();
@@ -141,9 +170,9 @@ namespace scallion
 		{
 			ProgramParameters parms = ProgramParameters.Instance;
 
-			var rp = new RegexPattern(parms.Regex);
-			ulong hashes_per_win = (ulong)(0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum());
-			ulong hashes_per_key = (CLRuntime.EXP_MAX - CLRuntime.EXP_MIN) / 2;
+            var rp = new RegexPattern(parms.Regex, 16, "abcdefghijklmnopqrstuvwxyz234567");
+			ulong hashes_per_win = (ulong)(0.5 / rp.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum());
+			ulong hashes_per_key = (parms.ToolConfig.MaximumExponent - parms.ToolConfig.MinimumExponent) / 2;
 			ulong keys_needed = hashes_per_win / hashes_per_key;
 			uint SF = 5;
 
@@ -160,7 +189,13 @@ namespace scallion
 				if (i % 100 == 0) {
 					Console.WriteLine("Generating key {0} of {1}...", i, keys_needed*SF);
 				}
-				rsa.GenerateKey((int)parms.KeySize);
+
+                rsa.GenerateKey((int)parms.KeySize);
+
+                if (parms.UnixTs != 0) {
+                    rsa.Timestamp = parms.UnixTs;
+                }
+
 				pub_sw.WriteLine(rsa.Rsa.PublicModulus.ToDecimalString());
 				priv_sw.WriteLine("Public Modulus: " + rsa.Rsa.PublicModulus.ToDecimalString());
 				priv_sw.WriteLine(rsa.Rsa.PrivateKeyAsPEM);
@@ -268,6 +303,18 @@ namespace scallion
         static CLRuntime _runtime = new CLRuntime();
         static void Main(string[] args)
         {
+			OpenSSL.Core.ThreadInitialization.InitializeThreads();
+
+			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("77777777")[0]);
+			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("aaaaaaaa")[0]);
+
+			// TODO: Clean up gpg fingerprint test and move it elsewhere
+			/*RSAWrapper r = new RSAWrapper();
+			r.Timestamp = 1387430955;
+			r.Rsa.PublicModulus = BigNumber.FromHexString("00E2FC646FF48AFC8C2A7DDF1B99CECD21A0AEC603DBAAA1A7ADF6836A6CED82BAE694AC5A4ACBD7FC1D36B2C677BE25E400330D295D044C9F6AFAEA45A8CF370F59E398F853FFCED03395D297CEED47C0E9EF2C358C05399E1F8A878E6E044F1AB7D82A162C77EE956B0A9B54C910000EF7122CC8BBB1746872968F05E7CFD563");
+			r.Rsa.PublicExponent = 0x010001;
+			Console.WriteLine("GPG Fingerprint: {0}", r.GPG_fingerprint_string);*/
+
             ProgramParameters parms = ProgramParameters.Instance;
             Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
             OptionSet p = new OptionSet()
@@ -275,6 +322,7 @@ namespace scallion
                 .Add("n|nonoptimized", "Runs non-optimized kernel", parseMode(Mode.NonOptimized))
                 .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
                 .Add("h|?|help", "Displays command line usage help.", parseMode(Mode.Help))
+				.Add("gpg", "GPG vanitygen mode.", (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
                 .Add<uint>("d|device=", "Specifies the opencl device that should be used.", (i) => parms.DeviceId = i)
                 .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
                 .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
@@ -285,6 +333,9 @@ namespace scallion
 				.Add("r|read-results=", "Reads a results file (generated by a remote miner) and output the winning key (-m must be specified)", (i) => parms.InputResultsPath = i)
 				.Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
                 .Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
+				.Add("skip-sha-test", "Skip the SHA-1 test at startup.", (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
+				.Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
+				.Add<uint>("timestamp=", "Use this value as a timetamp for the RSA key.", (i) => parms.UnixTs = i)
                 .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
                 ;
 
@@ -401,6 +452,7 @@ namespace scallion
 			Console.WriteLine("Stopping the GPU and shutting down...");
 			Console.WriteLine();
 			lock (_runtime) { _runtime.Abort = true; }
+			OpenSSL.Core.ThreadInitialization.UninitializeThreads();
 		}
 
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)

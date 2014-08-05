@@ -18,11 +18,10 @@ namespace scallion
 				ret[i / 4] = (uint)(padded[i] << 24) | (uint)(padded[i + 1] << 16) | (uint)(padded[i + 2] << 8) | (uint)(padded[i + 3] << 0);
 			return ret;
 		}
-		/// <summary>
-		/// pass in a string where 'x' represents a character that needs to match and '_' represents a character that does not have to match
-		/// </summary>
+
 		public static byte[] CreateBase32Mask(string mask)
 		{
+			// 7 = all 1 (bits), a = all 0 (bits)
 			return FromBase32Str(Regex.Replace(mask.ToLower(), "[^.]", "7").Replace(".", "a"));
 		}
 
@@ -31,7 +30,7 @@ namespace scallion
 			byte[] src = Encoding.ASCII.GetBytes(str);
 			int srclen = src.Length;
 			int nbits = src.Length * 5;
-			if (nbits % 8 != 0) throw new System.ArgumentException("We need an even multiple of 5 bits.");
+			if (nbits % 8 != 0) throw new System.ArgumentException("We need an even multiple of 8 bits.");
 			Byte[] tmp = new byte[srclen];
 			for (int j = 0; j < srclen; ++j)
 			{
@@ -85,11 +84,6 @@ namespace scallion
 
 			StringBuilder sb = new StringBuilder();
 			if (nbits % 5 != 0) throw new System.ArgumentException("We need an even multiple of 5 bits.");
-
-			/*			tor_assert(srclen < SIZE_T_CEILING/8);
-						tor_assert((nbits%5) == 0); /* We need an even multiple of 5 bits. * /
-						tor_assert((nbits/5)+1 <= destlen); /* We need enough space. * /
-						tor_assert(destlen < SIZE_T_CEILING);*/
 
 			for (i = 0, bit = 0; bit < nbits; ++i, bit += 5)
 			{

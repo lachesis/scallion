@@ -23,8 +23,8 @@
     <WarningLevel>4</WarningLevel>
     <PlatformTarget>x86</PlatformTarget>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Commandlineparameters>-o moop.out -m derp -r derp.out</Commandlineparameters>
     <ConsolePause>false</ConsolePause>
+    <Commandlineparameters>-d 0 --gpg ffff$</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -46,7 +46,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <PlatformTarget>x86</PlatformTarget>
     <ConsolePause>false</ConsolePause>
-    <Commandlineparameters>-o moop.out -m derp -r derp.out</Commandlineparameters>
+    <Commandlineparameters>-d 0 -p /tmp/kernel.cl shallot scallion$</Commandlineparameters>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>none</DebugType>
@@ -72,7 +72,6 @@
     </Compile>
     <Compile Include="KernelGenerator.cs" />
     <Compile Include="RegexPattern.cs" />
-    <Compile Include="ObjectDumper.cs" />
     <Compile Include="Options.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -83,6 +82,10 @@
     <Compile Include="CLRuntime.cs" />
     <Compile Include="Profiler.cs" />
     <Compile Include="Util.cs" />
+    <Compile Include="ToolConfig.cs" />
+    <Compile Include="GpgToolConfig.cs" />
+    <Compile Include="OnionToolConfig.cs" />
+    <Compile Include="DataInterchange.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\openssl-net-0.5\ManagedOpenSsl\openssl.csproj">

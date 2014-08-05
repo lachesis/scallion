@@ -1,0 +1,20 @@
+Data:
+    (a) 1 byte : 0x99
+    (b) 2 bytes: big-endian zero-padded length of c-end
+    (c) 1 byte : version (0x04)
+    (d) 4 bytes: timestamp (unixtime, big-endian)
+    (e) 1 byte : algorithm (0x01 for RSA)
+    (f) N bytes: modulus (as an MPI)
+    (g) M bytes: exponent (as an mpi)
+N = 2 + bitlen(modulus) / 8
+M = 2 + bitlen(exponent) / 8
+
+fingerprint: SHA-1(Data).hexdigest()
+
+message is (13 + bytelen(modulus) + bytelen(exponent)) bytes long
+sha-1 uses 64 byte blocks
+sha-1 final block padded with 100000000000000000...0000(bitlen) (verify!)
+
+exponent always starts at 13 bytes into data
+
+

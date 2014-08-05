@@ -23,28 +23,7 @@ namespace scallion
 				.Where(i => i.CompilerAvailable)
 				.ToList();
 		}
-
-		private KernelType kernel_type;
-		private int keySize;
-
-		static private int get_der_len(ulong val)
-		{
-			if(val == 0) return 1;
-			ulong tmp = val;
-			int len = 0;
-
-			// Find the length of the value
-			while(tmp != 0) {
-				tmp >>= 8;
-				len++;
-			}
-
-			// if the top bit of the number is set, we need to prepend 0x00
-			if(((val >> 8*(len-1)) & 0x80) == 0x80)
-				len++;
-
-			return len;
-		}
+ KernelType kernel_type;
 
 		public static void OutputKey(RSAWrapper rsa)
 		{
@@ -116,7 +95,7 @@ namespace scallion
 				Midstates = new uint[num_exps * 5];
 				ExpIndexes = new int[num_exps];
 				Results = new uint[128];
-				BaseExp = EXP_MIN;
+				BaseExp = ProgramParameters.Instance.ToolConfig.MinimumExponent;
 			}
 			public readonly uint[] LastWs;
 			public readonly uint[] Midstates;
@@ -125,8 +104,7 @@ namespace scallion
 			public readonly uint[] Results;
 			public readonly uint BaseExp;
 		}
-		public const uint EXP_MIN = 0x01010001;
-		public const uint EXP_MAX = 0x7FFFFFFF;
+
 		public bool Abort = false;
 		private RandomList<KernelInput> _kernelInput = new RandomList<KernelInput>();
 		private void CreateInput()
@@ -139,8 +117,7 @@ namespace scallion
 				lock (_kernelInput)	{ inputQueueIsLow = _kernelInput.Count < 300; }
 				if (inputQueueIsLow)
 				{
-					int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
-					KernelInput input = new KernelInput(num_exps);
+					KernelInput input = new KernelInput(1);
 
 					// Read moduli from file or generate them if possible
 					if (parms.RSAPublicModuli != null)
@@ -154,80 +131,81 @@ namespace scallion
 					else
 					{
 						profiler.StartRegion("generate key");
-						input.Rsa.GenerateKey(keySize); // Generate a key
+						input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
+                        if (parms.UnixTs != 0) {
+                            input.Rsa.Timestamp = parms.UnixTs;
+                        }
 						profiler.EndRegion("generate key");
 					}
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
-					int cur_exp_num = 0;
-					BigNumber[] Exps = new BigNumber[num_exps];
 					bool skip_flag = false;
 
-					// With EXP_MIN = 0x01010001 and EXP_MAX = 0x7FFFFFFF, only one iteration (i = 4)
-					for (int i = get_der_len(EXP_MIN); i <= get_der_len(EXP_MAX); i++)
-					{
-						// With i = 4, exp = 0x01000000 (just a placeholder in the DER)
-						ulong exp = (ulong)0x01 << (int)((i - 1) * 8);
+					uint exp = parms.ToolConfig.MinimumExponent;
 
-						// Set the exponent in the RSA key
-						// NO SANITY CHECK - just for building a DER
-						input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
-						Exps[cur_exp_num] = (BigNumber)exp;
+					// Set the exponent in the RSA key
+					// NO SANITY CHECK - just for building a DER/GPG v4 packet
+					input.Rsa.Rsa.PublicExponent = (BigNumber)exp;
 
-						// Get the DER
-						byte[] der = input.Rsa.DER;
-						int exp_index = der.Length % 64 - i;
-						if(exp_index != parms.ExponentIndex) {
-							Console.WriteLine("Exponent index doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-						if(i != 4) { // exponent length assumed to be 4 in the kernel
-							Console.WriteLine("Exponent length doesn't match - skipping key");
-							skip_flag = true;
-							break;
-						}
-
-						// Put the DER into Ws
-						SHA1 Sha1 = new SHA1();
-						List<uint[]> Ws = Sha1.DataToPaddedBlocks(der);
-
-						// Put all but the last block through the hash
-						Ws.Take(Ws.Count - 1).Select((t) =>
-						{
-							Sha1.SHA1_Block(t);
-							return t;
-						}).ToArray();
-
-						// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
-						Sha1.H.CopyTo(input.Midstates, 5 * cur_exp_num);
-						Ws.Last().Take(16).ToArray().CopyTo(input.LastWs, 16 * cur_exp_num);
-						input.ExpIndexes[cur_exp_num] = exp_index;
-
-						// Increment the current exponent size
-						cur_exp_num++;
+					// Get the GPG v4 packet
+					int exp_index;
+					byte[] data = parms.ToolConfig.GetPublicKeyData(input.Rsa, out exp_index);
+					//byte[] data = input.Rsa.GPG_v4Packet(out exp_index);
+					exp_index %= 64; // SHA-1 block size
+				
+					if(exp_index != parms.ExponentIndex) {
+						Console.WriteLine("Exponent index doesn't match - skipping key");
+						skip_flag = true;
 						break;
 					}
+					/*if(i != 4) { // exponent length assumed to be 4 in the kernel
+						Console.WriteLine("Exponent length doesn't match - skipping key");
+						skip_flag = true;
+						break;
+					}*/
+
+					// Put the v4 packet into Ws
+					SHA1 Sha1 = new SHA1();
+					List<uint[]> Ws = Sha1.DataToPaddedBlocks(data);
+
+					// Put all but the last block through the hash
+					Ws.Take(Ws.Count - 1).Select((t) => {
+						Sha1.SHA1_Block(t);
+						return t;
+					}).ToArray();
+
+					// Put the midstate, the last W block, and the byte index of the exponent into the CL buffers
+					Sha1.H.CopyTo(input.Midstates, 0);
+					Ws.Last().Take(16).ToArray().CopyTo(input.LastWs, 0);
+					input.ExpIndexes[0] = exp_index;
+
 					profiler.EndRegion("cpu precompute");
 
 					if(skip_flag) continue; // we got a bad key - don't enqueue it
 
 					List<KernelInput> inputs = new List<KernelInput>();
 					inputs.Add(input);
-					for (uint i = 1; i < (EXP_MAX - EXP_MIN) / 2 / workSize - 1; i++)
+
+					// Stretch the key for multiple exponents (if more than one kernel iteration (work group?) will be needed)
+					for (uint i = 1; i < (parms.ToolConfig.MaximumExponent - parms.ToolConfig.MinimumExponent) / 2 / workSize - 1; i++)
 					{
 						//profiler.StartRegion("generate key");
-						if(EXP_MIN + workSize * 2 * i >= EXP_MAX) throw new ArgumentException("base_exp > EXP_MAX");
-						inputs.Add(new KernelInput(input, EXP_MIN + workSize * 2 * i));
+						if(parms.ToolConfig.MinimumExponent + workSize * 2 * i >= parms.ToolConfig.MaximumExponent)
+							throw new ArgumentException("base_exp > EXP_MAX");
+						inputs.Add(new KernelInput(input, parms.ToolConfig.MinimumExponent + workSize * 2 * i));
 						//profiler.EndRegion("generate key");
 					}
+
+					// TODO: Stretch the key for multiple time stamps for GPG
+
 					lock (_kernelInput)//put input on queue
 					{
 						foreach (KernelInput i in inputs)
 						{
 							_kernelInput.Push(i);
 						}
+						//Console.WriteLine("[DEBUG] Input pool size: {0}", _kernelInput.Count);
 					}
 					continue;//skip the sleep cause we might be really low
 				}
@@ -247,18 +225,19 @@ namespace scallion
 		private List<Thread> inputThreads = new List<Thread>();
 
 		const int MIN_CHARS = 7;
-		const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
-		const uint BIT_TABLE_WORD_SIZE = 32;
+		//const uint BIT_TABLE_LENGTH = 0x40000000; // in bits
+		//const uint BIT_TABLE_WORD_SIZE = 32;
 
 		public void Run(ProgramParameters parms)
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
+			HashSet<string> seenMatches = new HashSet<string>();
+
 			int deviceId = (int)parms.DeviceId;
 			int workGroupSize = (int)parms.WorkGroupSize;
 			int workSize = (int)parms.WorkSize;
 			int numThreadsCreateWork = (int)parms.CpuThreads;
 			KernelType kernelt = parms.KernelType;
-			int keysize = (int)parms.KeySize;
 
 			Console.WriteLine("Cooking up some delicions scallions...");
 			this.workSize = (uint)workSize;
@@ -266,51 +245,12 @@ namespace scallion
 			#region init
 			profiler.StartRegion("init");
 
-			// Combine patterns into a single regexp and build one of Richard's objects
-            var rp = new RegexPattern(parms.Regex);
-
-			// Create bitmasks array for the GPU
-			var gpu_bitmasks = rp.GenerateOnionPatternBitmasksForGpu(MIN_CHARS)
-								 .Select(t => TorBase32.ToUIntArray(TorBase32.CreateBase32Mask(t)))
-								 .SelectMany(t => t).ToArray();
-			//Create Hash Table
-			uint[] dataArray;
-			ushort[] hashTable;
-            uint[][] all_patterns;
-			int max_items_per_key = 0;
-			{
-				Func<uint[], ushort> fnv =
-					(pattern_arr) =>
-					{
-						uint f = Util.FNVHash(pattern_arr[0], pattern_arr[1], pattern_arr[2]);
-						f = ((f >> 10) ^ f) & (uint)1023;
-						return (ushort)f;
-					};
-				all_patterns = rp.GenerateOnionPatternsForGpu(7)
-					.Select(i => TorBase32.ToUIntArray(TorBase32.FromBase32Str(i.Replace('.', 'a'))))
-                    .ToArray();
-                var gpu_dict_list = all_patterns
-					.Select(i => new KeyValuePair<ushort, uint>(fnv(i), Util.FNVHash(i[0], i[1], i[2])))
-					.GroupBy(i => i.Key)
-					.OrderBy(i => i.Key)
-					.ToList();
-
-				dataArray = gpu_dict_list.SelectMany(i => i.Select(j => j.Value)).ToArray();
-				hashTable = new ushort[1024]; //item 1 index, item 2 length
-				int currIndex = 0;
-				foreach (var item in gpu_dict_list)
-				{
-					int len = item.Count();
-					hashTable[item.Key] = (ushort)currIndex;
-					currIndex += len;
-					if(len > max_items_per_key) max_items_per_key = len;
-				}
-
-				Console.WriteLine("Putting {0} patterns into {1} buckets.",currIndex,gpu_dict_list.Count);
+			// Create a tool config
+			if (parms.GPGMode) {
+				parms.ToolConfig = new GpgToolConfig(parms.Regex);
+			} else {
+				parms.ToolConfig = new OnionToolConfig(parms.Regex);
 			}
-
-			// Set the key size
-			keySize = keysize;
 
 			// Find kernel name and check key size
 			kernel_type = kernelt;
@@ -341,18 +281,18 @@ namespace scallion
 			CLContext context = new CLContext(device.DeviceId);
 
 			Console.Write("Compiling kernel... ");
-			string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
+			string kernel_text = KernelGenerator.GenerateKernel(parms, parms.ToolConfig, parms.ExponentIndex);
+			//string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
 
-			var hashes_per_win = 0.5 / rp.GenerateAllOnionPatternsForRegex().Select(t=>Math.Pow(2,-5*t.Count(q=>q!='.'))).Sum();
 			Console.WriteLine("done.");
 
             //
             // Test SHA1 algo
             // 
-            {
+			if (!parms.SkipShaTest) {
                 Console.WriteLine("Testing SHA1 hash...");
 
                 CLKernel shaTestKern = context.CreateKernel(program, "shaTest");
@@ -404,7 +344,7 @@ namespace scallion
 			CLBuffer<int> bufExpIndexes;
 			CLBuffer<uint> bufResults;
 			{
-				int num_exps = (get_der_len(EXP_MAX) - get_der_len(EXP_MIN) + 1);
+				int num_exps = 1;
 				uint[] LastWs = new uint[num_exps * 16];
 				uint[] Midstates = new uint[num_exps * 5];
 				int[] ExpIndexes = new int[num_exps];
@@ -420,17 +360,17 @@ namespace scallion
 			CLBuffer<uint> bufDataArray;
 			CLBuffer<uint> bufBitmasks;
 			{
-				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, hashTable);
-				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, dataArray);
-				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, gpu_bitmasks);
+				bufHashTable = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.HashTable);
+				bufDataArray = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedPatterns);
+				bufBitmasks = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadOnly | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, parms.ToolConfig.PackedBitmasks);
 			}
 			//Set kernel arguments
 			lock (new object()) { } // Empty lock, resolves (or maybe hides) a race condition in SetKernelArg
 			kernel.SetKernelArg(0, bufLastWs);
 			kernel.SetKernelArg(1, bufMidstates);
 			kernel.SetKernelArg(2, bufResults);
-			kernel.SetKernelArg(3, (uint)EXP_MIN);
-			kernel.SetKernelArg(4, (byte)get_der_len(EXP_MIN));
+			kernel.SetKernelArg(3, (uint)parms.ToolConfig.MinimumExponent);
+			kernel.SetKernelArg(4, (byte)parms.ExponentIndex); // TODO: This is in like 4 places...
 			kernel.SetKernelArg(5, bufExpIndexes);
 			kernel.SetKernelArg(6, bufBitmasks);
 			kernel.SetKernelArg(7, bufHashTable);
@@ -468,7 +408,7 @@ namespace scallion
 				if (input == null) //If we have run out of work sleep for a bit
 				{
 					Console.WriteLine("Lack of work for the GPU!! Taking a nap!!");
-					Thread.Sleep(250);
+					Thread.Sleep(2500);
 					continue;
 				}
 
@@ -501,26 +441,66 @@ namespace scallion
 				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}  ", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
-				              PredictedRuntime(hashes_per_win,hashes*1000/gpu_runtime_sw.ElapsedMilliseconds));
+				              parms.ToolConfig.PredictRuntime(hashes * 1000/gpu_runtime_sw.ElapsedMilliseconds));
 
 				profiler.StartRegion("check results");
+				/*input.Rsa.Rsa.PublicExponent = (BigNumber)input.Results[5];
+				uint[] hash = new uint[5];
+				Array.Copy(input.Results, hash, 5);
+				String gpuhashhex = String.Format("{0:x8}{1:x8}{2:x8}{3:x8}{4:x8}", input.Results[0], input.Results[1], input.Results[2], input.Results[3], input.Results[4]);
+				Console.WriteLine("gpu hash: {0}", gpuhashhex);
+				Console.WriteLine("cpu hash: {0}", input.Rsa.GPG_fingerprint_string);
+				success = true;
+				break;*/
+
 				foreach (var result in input.Results)
 				{
 					if (result != 0)
 					{
 						try
 						{
+							// Change the exponent (just so .CheckMatch will work, no sanity checks!)
 							input.Rsa.Rsa.PublicExponent = (BigNumber)result;
 
-							string onion_hash = input.Rsa.OnionHash;
-							Console.WriteLine("CPU checking hash: {0}",onion_hash);
+							// TODO :Real code
+							//Console.WriteLine("Found key with fingerprint: {0}", input.Rsa.GPG_fingerprint_string);
+							//System.IO.File.WriteAllText(String.Format("/tmp/{0}.sec.asc", input.Rsa.GPG_fingerprint_string), input.Rsa.GPG_privkey_export);
 
-							if (rp.DoesOnionHashMatchPattern(onion_hash))
+							/*if (input.Rsa.HasPrivateKey) {
+								Console.WriteLine(input.Rsa.Rsa.PrivateKeyAsPEM);
+								Console.WriteLine();
+							}*/
+
+                            //////
+							//Console.WriteLine("CPU checking hash: {0}",onion_hash);
+
+							if (parms.ToolConfig.CheckMatch(input.Rsa))
 							{
 								input.Rsa.ChangePublicExponent(result);
-								OutputKey(input.Rsa);
+								XmlMatchOutput match = new XmlMatchOutput();
 
-                                if (!parms.ContinueGeneration) success = true;
+								match.GeneratedDate = DateTime.UtcNow;
+								match.PublicModulus = input.Rsa.Rsa.PublicModulus;
+								match.PublicExponent = input.Rsa.Rsa.PublicExponent;
+								match.Hash = parms.ToolConfig.HashToString(input.Rsa);
+
+								if (!seenMatches.Contains(match.Hash)) {
+									seenMatches.Add(match.Hash);	
+
+									Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);									
+
+									if (input.Rsa.HasPrivateKey) {
+										match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
+									}
+
+									string xml = Util.ToXml(match);
+									Console.WriteLine(xml);
+									if (parms.KeyOutputPath != null)
+										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
+
+									if (!parms.ContinueGeneration || (parms.QuitAfterXKeysFound != 0 && seenMatches.Count >= parms.QuitAfterXKeysFound))
+										success = true;
+								}
 							}
 						}
 						catch (OpenSslException /*ex*/) { }
