@@ -8,8 +8,6 @@ Scallion is currently in beta stage and under active development. Nevertheless, 
 
 Scallion is available under the MIT licence. If you use code from this project in your own projects, we'd appreciate hearing about it at scallion@aftbit.com.
 
-**Note**: I am now generating addresses using the [secure remote generation](saas.md) feature for a [small fee](saas.md).
-
 FAQ
 ---
 Here are some frequently asked questions and their answers:
