@@ -30,7 +30,7 @@ Here are some frequently asked questions and their answers:
 
     Run multiple Scallion instances. :smile: Scallion searches are probabilistic, so you won't be repeating work with the second device. True multi-device support wouldn't be too difficult, but it also wouldn't add much. I've run several scallion instances in [tmux](http://tmux.sourceforge.net/) or [screen](https://www.gnu.org/software/screen/) with great success. You'll just need to manually abort all the jobs when one finds a pattern (or write a shell script to monitor the output file and kill them all when it sees results).
 
-Dependancies
+Dependencies
 ------------
 - OpenCL and relevant drivers installed and configured. Refer to your distribution's documentation.
 - OpenSSL. For Windows, the prebuilt x86 DLLs are included
