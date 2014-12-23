@@ -158,6 +158,7 @@ AMD Radeon HD5770        | 520 MH/s
 AMD Radeon HD6850        | 600 MH/s
 NVIDIA GTS 250           | 128 MH/s
 Intel i7-2620M           | 9.9 MH/s
+NVIDIA GTX 970           | 2350 MH/s
 
 MH/s = million hashes per second
 
