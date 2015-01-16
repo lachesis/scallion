@@ -41,6 +41,7 @@ namespace scallion
         public string Regex = null;
         public string KeyOutputPath = null;
 		public string PIDFile = null;
+        public string Command = null;
         
         public uint UnixTs = 0;
 
@@ -337,6 +338,7 @@ namespace scallion
 				.Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
 				.Add<uint>("timestamp=", "Use this value as a timetamp for the RSA key.", (i) => parms.UnixTs = i)
                 .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
+                .Add<string>("command=", "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt", (i) => parms.Command = i)
                 ;
 
             List<string> extra = p.Parse(args);

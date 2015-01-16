@@ -117,7 +117,7 @@
   -->
   <ItemGroup>
     <EmbeddedResource Include="openssl.dll.config">
-      <DeployService-Deploy>true</DeployService-Deploy>
+      <DeployService-Deploy>True</DeployService-Deploy>
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </EmbeddedResource>
   </ItemGroup>

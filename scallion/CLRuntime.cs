@@ -495,6 +495,13 @@ namespace scallion
 
 									string xml = Util.ToXml(match);
 									Console.WriteLine(xml);
+                                    if(!String.IsNullOrEmpty(parms.Command))
+                                    {
+                                        Console.Write("\n\n");
+                                        var exitCode = Util.ExecExternalCommand(parms.Command, xml);
+                                        Console.WriteLine("\n\nExecuted command '{0}' which exited with code {1}", parms.Command, exitCode);
+                                    }
+
 									if (parms.KeyOutputPath != null)
 										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
 
