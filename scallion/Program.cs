@@ -269,9 +269,7 @@ namespace scallion
 			Console.WriteLine();
 			lock (_runtime) { _runtime.Abort = true; }
 			OpenSSL.Core.ThreadInitialization.UninitializeThreads();
-
-			System.Threading.Thread.Sleep(5000);
-			Environment.Exit(code);
+			Environment.ExitCode = code;
 		}
 
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
