@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using OpenTK.Compute.CL10;
 using System.Text;
 using System.Linq;
