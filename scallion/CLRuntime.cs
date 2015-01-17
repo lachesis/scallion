@@ -23,7 +23,8 @@ namespace scallion
 				.Where(i => i.CompilerAvailable)
 				.ToList();
 		}
- KernelType kernel_type;
+
+		KernelType kernel_type;
 
 		public static void OutputKey(RSAWrapper rsa)
 		{
@@ -500,6 +501,9 @@ namespace scallion
                                         Console.Write("\n\n");
                                         var exitCode = Util.ExecExternalCommand(parms.Command, xml);
                                         Console.WriteLine("\n\nExecuted command '{0}' which exited with code {1}", parms.Command, exitCode);
+										if (exitCode != 0) {
+											Program.Shutdown(exitCode);
+										}
                                     }
 
 									if (parms.KeyOutputPath != null)

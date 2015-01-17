@@ -338,7 +338,7 @@ namespace scallion
 				.Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
 				.Add<uint>("timestamp=", "Use this value as a timetamp for the RSA key.", (i) => parms.UnixTs = i)
                 .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
-                .Add<string>("command=", "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt", (i) => parms.Command = i)
+                .Add<string>("command=", "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt\nIf the command returns with a non-zero exit code, the program will return the same code.", (i) => parms.Command = i)
                 ;
 
             List<string> extra = p.Parse(args);
@@ -443,8 +443,15 @@ namespace scallion
 
         }
 
-		static void Shutdown()
+		public static void Shutdown(int code)
 		{
+			// Don't try to shutdown twice
+			lock (_runtime) { 
+				if (_runtime.Abort) {
+					return;
+				}
+			}
+
 			ProgramParameters parms = ProgramParameters.Instance;
 			if (parms.UsedModuliFile != null)
 				parms.UsedModuliFile.Close();
@@ -455,6 +462,9 @@ namespace scallion
 			Console.WriteLine();
 			lock (_runtime) { _runtime.Abort = true; }
 			OpenSSL.Core.ThreadInitialization.UninitializeThreads();
+
+			System.Threading.Thread.Sleep(5000);
+			Environment.Exit(code);
 		}
 
         static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
