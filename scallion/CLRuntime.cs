@@ -120,24 +120,13 @@ namespace scallion
 				{
 					KernelInput input = new KernelInput(1);
 
-					// Read moduli from file or generate them if possible
-					if (parms.RSAPublicModuli != null)
-					{
-						if (parms.RSAPublicModuli.Count > 0) {
-							input.Rsa.Rsa.PublicModulus = parms.RSAPublicModuli.Dequeue();
-						} else {
-							break;
-						}
-					}
-					else
-					{
-						profiler.StartRegion("generate key");
-						input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
-                        if (parms.UnixTs != 0) {
-                            input.Rsa.Timestamp = parms.UnixTs;
-                        }
-						profiler.EndRegion("generate key");
-					}
+					// Generate keys if the queue is low
+					profiler.StartRegion("generate key");
+					input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
+                    if (parms.UnixTs != 0) {
+                        input.Rsa.Timestamp = parms.UnixTs;
+                    }
+					profiler.EndRegion("generate key");
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
@@ -518,11 +507,6 @@ namespace scallion
 					}
 				}
 				profiler.EndRegion("check results");
-
-				// Mark key as used (if configured)
-				if (parms.UsedModuliFile != null) {
-					parms.UsedModuliFile.WriteLine(input.Rsa.Rsa.PublicModulus.ToDecimalString());
-				}
 			}
 
 			foreach (var thread in inputThreads) thread.Abort();
