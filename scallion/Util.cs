@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -7,11 +7,28 @@ using System.Xml.Serialization;
 using System.IO;
 using System.Xml;
 using OpenSSL.Core;
+using System.Diagnostics;
 
 namespace scallion
 {
 	public static class Util
 	{
+        public static int ExecExternalCommand(string command, string stdin)
+        {
+            string[] commandParts = command.Split(new char[] { ' ' }, 2);
+            ProcessStartInfo startInfo = new ProcessStartInfo()
+            {
+                FileName = commandParts[0],
+                Arguments =  commandParts.Length > 1 ? commandParts[1] : null,
+                RedirectStandardInput = true,
+                UseShellExecute = false
+            };
+            var process = Process.Start(startInfo);
+            process.StandardInput.Write(stdin);
+            process.StandardInput.Close();
+            process.WaitForExit();
+            return process.ExitCode;
+        }
         public static string ToXml<T>(T obj)
         {
             using (StringWriter writer = new StringWriter())

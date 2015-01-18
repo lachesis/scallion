@@ -23,7 +23,8 @@ namespace scallion
 				.Where(i => i.CompilerAvailable)
 				.ToList();
 		}
- KernelType kernel_type;
+
+		KernelType kernel_type;
 
 		public static void OutputKey(RSAWrapper rsa)
 		{
@@ -119,24 +120,13 @@ namespace scallion
 				{
 					KernelInput input = new KernelInput(1);
 
-					// Read moduli from file or generate them if possible
-					if (parms.RSAPublicModuli != null)
-					{
-						if (parms.RSAPublicModuli.Count > 0) {
-							input.Rsa.Rsa.PublicModulus = parms.RSAPublicModuli.Dequeue();
-						} else {
-							break;
-						}
-					}
-					else
-					{
-						profiler.StartRegion("generate key");
-						input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
-                        if (parms.UnixTs != 0) {
-                            input.Rsa.Timestamp = parms.UnixTs;
-                        }
-						profiler.EndRegion("generate key");
-					}
+					// Generate keys if the queue is low
+					profiler.StartRegion("generate key");
+					input.Rsa.GenerateKey((int)parms.KeySize); // Generate a key
+                    if (parms.UnixTs != 0) {
+                        input.Rsa.Timestamp = parms.UnixTs;
+                    }
+					profiler.EndRegion("generate key");
 
 					// Build DERs and calculate midstates for exponents of representitive lengths
 					profiler.StartRegion("cpu precompute");
@@ -495,6 +485,16 @@ namespace scallion
 
 									string xml = Util.ToXml(match);
 									Console.WriteLine(xml);
+                                    if(!String.IsNullOrEmpty(parms.Command))
+                                    {
+                                        Console.Write("\n\n");
+                                        var exitCode = Util.ExecExternalCommand(parms.Command, xml);
+                                        Console.WriteLine("\n\nExecuted command '{0}' which exited with code {1}", parms.Command, exitCode);
+										if (exitCode != 0) {
+											Program.Shutdown(exitCode);
+										}
+                                    }
+
 									if (parms.KeyOutputPath != null)
 										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
 
@@ -507,11 +507,6 @@ namespace scallion
 					}
 				}
 				profiler.EndRegion("check results");
-
-				// Mark key as used (if configured)
-				if (parms.UsedModuliFile != null) {
-					parms.UsedModuliFile.WriteLine(input.Rsa.Rsa.PublicModulus.ToDecimalString());
-				}
 			}
 
 			foreach (var thread in inputThreads) thread.Abort();
