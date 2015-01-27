@@ -6,7 +6,7 @@ Scallion runs on Mono (tested in Arch Linux) and .NET 3.5+ (tested on Windows 7 
 
 Scallion is currently in beta stage and under active development. Nevertheless, we feel that it is ready for use. Improvements are expected primarily in performance, user interface, and ease of installation, not in the overall algorithm used to generate keys.
 
-Scallion is available under the MIT licence. If you use code from this project in your own projects, we'd appreciate hearing about it at scallion@aftbit.com.
+Scallion is available under the MIT license. If you use code from this project in your own projects, we'd appreciate hearing about it at scallion@aftbit.com.
 
 FAQ
 ---
@@ -24,7 +24,7 @@ Here are some frequently asked questions and their answers:
 
 - Can you use Bitcoin ASICs (e.g. Jalapeno, KnC) to accelerate this process?
 
-    Sadly, no. While the process Scallion uses is conceptually similar (increment a nonce and check the hash), the details are different (SHA-1 vs double SHA-256 for Bitcoin). Furthermore, Bitcoin ASICs are as fast as they are because they are extremely taylored to Bitcoin mining applications. For example, here's the [datasheet](https://bitmine.ch/wp-content/uploads/2013/11/CoinCraft-A1.pdf) for the CoinCraft A-1, an ASIC that never came out, but is probably indicitive of the general approach. The microcontroller sends work in the form of the final 128-bits of a Bitcoin block, the hash midstate of the previous bits, a target difficulty, and the maximum nonce to try. The ASIC chooses the location to insert the nonce, and it chooses what blocks meet the hash. Scallion has to insert the nonce in a different location, and it checks for a pattern match rather than just "lower than XXXX".
+    Sadly, no. While the process Scallion uses is conceptually similar (increment a nonce and check the hash), the details are different (SHA-1 vs double SHA-256 for Bitcoin). Furthermore, Bitcoin ASICs are as fast as they are because they are extremely tailored to Bitcoin mining applications. For example, here's the [datasheet](https://bitmine.ch/wp-content/uploads/2013/11/CoinCraft-A1.pdf) for the CoinCraft A-1, an ASIC that never came out, but is probably indicitive of the general approach. The microcontroller sends work in the form of the final 128-bits of a Bitcoin block, the hash midstate of the previous bits, a target difficulty, and the maximum nonce to try. The ASIC chooses the location to insert the nonce, and it chooses what blocks meet the hash. Scallion has to insert the nonce in a different location, and it checks for a pattern match rather than just "lower than XXXX".
 
 - How can you use multiple devices?
 
