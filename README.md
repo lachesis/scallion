@@ -61,7 +61,7 @@ Generate a hash
 
 
     $ mono scallion/bin/Debug/scallion.exe -d 0 prefix
-    Cooking up some delicions scallions...
+    Cooking up some delicious scallions...
     Using kernel optimized from file kernel.cl (Optimized4)
     Using work group size 128
     Compiling kernel... done.
