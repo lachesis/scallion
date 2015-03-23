@@ -229,7 +229,7 @@ namespace scallion
 			int numThreadsCreateWork = (int)parms.CpuThreads;
 			KernelType kernelt = parms.KernelType;
 
-			Console.WriteLine("Cooking up some delicions scallions...");
+			Console.WriteLine("Cooking up some delicious scallions...");
 			this.workSize = (uint)workSize;
 			profiler = new Profiler();
 			#region init
