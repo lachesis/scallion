@@ -1,8 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 11.00
 # Visual Studio 2010
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenTK", "opentk\Source\OpenTK\OpenTK.csproj", "{A37A7E14-0000-0000-0000-000000000000}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "scallion", "scallion\scallion.csproj", "{614DA1AC-AB3C-4A6E-9F0F-EB3D58F5F5CE}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "openssl", "openssl-net-0.5\ManagedOpenSsl\openssl.csproj", "{74975B7A-5D4B-41E6-8588-9F2E90BE607A}"
@@ -45,21 +43,6 @@ Global
 		{74975B7A-5D4B-41E6-8588-9F2E90BE607A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{74975B7A-5D4B-41E6-8588-9F2E90BE607A}.Release|Any CPU.Build.0 = Release|Any CPU
 		{74975B7A-5D4B-41E6-8588-9F2E90BE607A}.Release|x86.ActiveCfg = Release|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Documentation|Any CPU.ActiveCfg = Documentation|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Documentation|Any CPU.Build.0 = Documentation|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Documentation|x86.ActiveCfg = Documentation|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Nsis|Any CPU.ActiveCfg = Nsis|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Nsis|Any CPU.Build.0 = Nsis|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Nsis|x86.ActiveCfg = Nsis|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Release|Any CPU.Build.0 = Release|Any CPU
-		{A37A7E14-0000-0000-0000-000000000000}.Release|x86.ActiveCfg = Release|Any CPU
-	EndGlobalSection
-	GlobalSection(MonoDevelopProperties) = preSolution
-		StartupItem = scallion\scallion.csproj
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
