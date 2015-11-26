@@ -11,12 +11,11 @@ namespace scallion
 
 		public GpgToolConfig(string pattern) : base(pattern) { }
 
-		public override TimeSpan PredictRuntime(long hashRate)
+		protected override double PredictRuntimeInSeconds(long hashRate)
 		{
 			// 4 = log_2(16) [for hex address]
 			var hashes_per_win = _regex.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,4*t.Count(q=>q!='.') - 1)).Sum();
-			long runtime_sec = (long)(hashes_per_win / hashRate);
-			return TimeSpan.FromSeconds(runtime_sec);
+			return (long)(hashes_per_win / hashRate);
 		}
 
 		public override bool CheckMatch(RSAWrapper rsa)
