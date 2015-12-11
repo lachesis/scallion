@@ -34,6 +34,7 @@ Dependencies
 ------------
 - OpenCL and relevant drivers installed and configured. Refer to your distribution's documentation.
 - OpenSSL. For Windows, the prebuilt x86 DLLs are included
+- On windows only, [VC++ Redistributable 2008](https://www.microsoft.com/en-us/download/details.aspx?id=5582)
 
 Binary Download
 ---------------
