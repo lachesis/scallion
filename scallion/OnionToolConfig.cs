@@ -9,12 +9,11 @@ namespace scallion
 
         public OnionToolConfig(string pattern) : base(pattern) { }
 
-		public override TimeSpan PredictRuntime(long hashRate)
+		protected override double PredictRuntimeInSeconds(long hashRate)
         {
 			// 5 = log_2(32) [for base 32 onion address]
 			var hashes_per_win = _regex.GenerateAllPatternsForRegex().Select(t=>Math.Pow(2,5*t.Count(q=>q!='.') - 1)).Sum();
-			long runtime_sec = (long)(hashes_per_win / hashRate);
-			return TimeSpan.FromSeconds(runtime_sec);
+			return (long)(hashes_per_win / hashRate);
         }
 
         public override bool CheckMatch(RSAWrapper rsa)
