@@ -191,5 +191,5 @@ Thanks / References
 
 Donations
 ---------
-Feel free to direct donations to the Bitcoin address: `12SuywgkPwkWkWiYJyaeuZvzyPVrU6t7H4`
+Feel free to direct donations to the Bitcoin address: `1FxQcu6vhpwsqcTjPsjK43CZ9vjnuk4Hmo`
 
