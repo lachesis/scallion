@@ -14,7 +14,7 @@ Here are some frequently asked questions and their answers:
 
 - Why generate GPG keys?
    
-   Scallion was used to find collisions for every 32bit key id in the Web of Trust's strong set demonstrating how insecure 32bit key ids are. There was/is [a talk at DEFCON](https://www.defcon.org/html/defcon-22/dc-22-speakers.html#Klafter) and additional info can be found at [https://evil32.com/](https://evil32.com/).
+   Scallion was used to find collisions for every 32bit key id in the Web of Trust's strong set demonstrating how insecure 32bit key ids are. There was/is [a talk at DEFCON](https://www.defcon.org/html/defcon-22/dc-22-speakers.html#Klafter) ([video](https://www.youtube.com/watch?v=Ow-YcP_KsIw)) and additional info can be found at [https://evil32.com/](https://evil32.com/).
 
 - What are valid characters?
 
