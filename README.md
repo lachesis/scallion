@@ -162,6 +162,8 @@ Intel i7-2620M           | 9.9 MH/s
 NVIDIA GTX 970           | 2350 MH/s
 Intel i5-5200U           | 118 MH/s
 NVIDIA GTS 450           | 144 MH/s
+AMD A8-7600 APU          | 120 MH/s
+AMD Radeon RX 470        | 957 MH/s
 
 MH/s = million hashes per second
 
