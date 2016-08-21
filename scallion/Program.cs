@@ -245,6 +245,11 @@ namespace scallion
 						try {
 		                	_runtime.Run(ProgramParameters.Instance);
 						}
+                        catch (ApplicationException e) {
+                            // these are handled and printed out
+                            Console.Error.WriteLine(e.Message);
+                            Environment.Exit(1);
+                        }
 						finally {
 							Shutdown();
 						}
