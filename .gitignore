@@ -6,6 +6,7 @@ obj
 *.pdb
 *.suo
 *.userprefs
+*.user
 
 # mstest test results
 TestResults

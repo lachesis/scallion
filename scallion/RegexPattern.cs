@@ -53,6 +53,14 @@ namespace scallion
             public SingleRegexPattern(string regex, int outputLength, string validCharacters)
             {
                 _outputLength = outputLength;
+
+                // check for invalid characters in given regex
+                Regex invalidMarkupRegex = new Regex("[^" + validCharacters + @"\^\$\[\]\.\\]");
+                var invalidMatch = invalidMarkupRegex.Match(regex);
+                if (invalidMatch.Success)
+                    throw new ApplicationException(string.Format("Unsupported character in Regex: '{0}'",
+                        invalidMatch.Value));
+
                 //create the regexRegex
                 Regex regexRegex = new Regex(string.Format(@"\[[{0}]*\]|[{0}.]", validCharacters));
 
@@ -73,7 +81,7 @@ namespace scallion
                     .Replace(@"\d", validCharacters.Where(i => int.TryParse(i.ToString(), out trash)).ToDelimitedString(""));
                 //validate regex
                 if (regexRegex.Matches(regex).Cast<Match>().Sum(i => i.Value.Length) != regex.Length)
-                    throw new System.ArgumentException("The passed regex string is not valid!");
+                    throw new ApplicationException("The passed regex string is not valid!");
                 //_regex = new Regex(regex);
                 //parse regex
                 _parsedRegex =
