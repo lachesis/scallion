@@ -163,6 +163,7 @@ NVIDIA GTX 970           | 2350 MH/s
 Intel i5-5200U           | 118 MH/s
 NVIDIA GTS 450           | 144 MH/s
 NVIDIA GTX 980           | 3260 MH/s
+GeForce GT 520           | 38.7 MH/s
 
 MH/s = million hashes per second
 
