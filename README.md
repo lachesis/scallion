@@ -154,18 +154,22 @@ SHA1 hashing is done on the GPU. The hashrates for several GPUs we have tested a
 
 GPU                      | Speed
 ------------------------ | -------------
-nVidia Quadro K2000M     | 90 MH/s
+Intel i7-2620M           | 9.9 MH/s
+Intel i5-5200U           | 118 MH/s
+NVIDIA Quadro K2000M     | 90 MH/s
+NVIDIA GTS 250           | 128 MH/s
+NVIDIA GTS 450           | 144 MH/s
+NVIDIA GT 520            | 38.7 MH/s
+NVIDIA GTX 970           | 2350 MH/s
+NVIDIA GTX 980           | 3260 MH/s
+NVIDIA GTX TITAN X       | 4412 MH/s
+NVIDIA GTX 1070          | 4140 MH/s
 AMD Radeon HD5770        | 520 MH/s
 AMD Radeon HD6850        | 600 MH/s
-NVIDIA GTS 250           | 128 MH/s
-Intel i7-2620M           | 9.9 MH/s
-NVIDIA GTX 970           | 2350 MH/s
-Intel i5-5200U           | 118 MH/s
-NVIDIA GTS 450           | 144 MH/s
-NVIDIA GTX 980           | 3260 MH/s
-NVIDIA GTX 1070          | 4140 MH/s
-GeForce GT 520           | 38.7 MH/s
 AMD A8-7600 APU          | 120 MH/s
+AMD Radeon R9 380X       | 2058 MH/s
+AMD Radeon R9 Nano       | 3325 MH/s
+AMD FirePro W9100        | 2566 MH/s
 AMD Radeon RX 470        | 957 MH/s
 
 MH/s = million hashes per second
