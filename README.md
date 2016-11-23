@@ -252,6 +252,14 @@ kH/s = thousand hashes per second.
 
 MH/s = million hashes per second.
 
+A quick way to check your average speed is to use a google search structured like this:
+
+    (2^(5*8-1) / 97.3 million) seconds in hours
+          |          |
+          |          |
+       lenght    speed as stated by scallion, in this case 97,3MH/s
+
+Click here to [try the above formula on Wolfram Alpha]](http://www.wolframalpha.com/input/?i=%282%5E%285*8-1%29+%2F+97.3+million%29+seconds+in+hours)
 
 Workgroups
 --------
