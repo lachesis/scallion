@@ -49,6 +49,20 @@ Build Windows
 1. Open 'scallion.sln' in VS Express for Desktop 2012
 2. Build the solution, I did everything in debug mode.
 
+Debugging Build
+---------------
+Some users on recent Ubuntu and Kali have reported issues getting Scallion to build. Here's a solution that seems to have worked for them:
+```
+sudo apt install clinfo mono-complete mono-devel nvidia-opencl-common nvidia-opencl-dev nvidia-opencl-icd libssl1.0-dev
+sudo apt remove mesa-*
+xbuild scallion.sln /p:TargetFrameworkVersion="v4.5"
+```
+
+Some users also report that Error -1001 can be solved with:
+```
+sudo apt install beignet beignet-dev ocl-icd-opencl-dev ocl-icd-libopencl1
+```
+
 Usage
 -----
 __Restarting Scallion during a search will not lose "progress". It is a probabilistic search and Scallion does not make "progress"__
