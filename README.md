@@ -184,6 +184,7 @@ AMD A8-7600 APU          | 120 MH/s
 AMD Radeon R9 380X       | 2058 MH/s
 AMD Radeon R9 Nano       | 3325 MH/s
 AMD FirePro W9100        | 2566 MH/s
+AMD Radeon RX 460        | 840 MH/s
 AMD Radeon RX 470        | 957 MH/s
 NVIDIA GTX 1080          | 5760 MH/s
 
