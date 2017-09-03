@@ -166,31 +166,32 @@ __It is important to realize that Scallion preforms a probabilistic search. Actu
 
 The inital RSA key generation is done the CPU. An ivybridge i7 can generate 51 keys per second using a single core. Each key can provide 1 gigahash worth of exponents to mine and a decent CPU can keep up with several GPUs as it is currently implemented.
 
-SHA1 hashing is done on the GPU. The hashrates for several GPUs we have tested are below:
+SHA1 hashing is done on the GPU. The hashrates for several GPUs we have tested are below (grouped by manufacturer and sorted by power):
 
-GPU                      | Speed
------------------------- | -------------
-Intel i7-2620M           | 9.9 MH/s
-Intel i5-5200U           | 118 MH/s
-NVIDIA Quadro K2000M     | 90 MH/s
-NVIDIA GTS 250           | 128 MH/s
-NVIDIA GTS 450           | 144 MH/s
-NVIDIA GT 520            | 38.7 MH/s
-NVIDIA GTX 970           | 2350 MH/s
-NVIDIA GTX 980           | 3260 MH/s
-NVIDIA GTX TITAN X       | 4412 MH/s
-NVIDIA GTX 1070          | 4140 MH/s
-AMD Radeon HD5770        | 520 MH/s
-AMD Radeon HD6850        | 600 MH/s
-AMD A8-7600 APU          | 120 MH/s
-AMD Radeon R9 380X       | 2058 MH/s
-AMD Radeon R9 Nano       | 3325 MH/s
-AMD FirePro W9100        | 2566 MH/s
-AMD Radeon RX 460        | 840 MH/s
-AMD Radeon RX 470        | 957 MH/s
-AMD Radeon RX 480        | 2700 MH/s
-AMD Radeon RX 580        | 3180 MH/s
-NVIDIA GTX 1080          | 5760 MH/s
+GPU                           | Speed
+----------------------------- | -------------
+Intel i7-2620M                | 9.9 MH/s
+Intel i5-5200U                | 118 MH/s
+NVIDIA GT 520                 | 38.7 MH/s
+NVIDIA Quadro K2000M          | 90 MH/s
+NVIDIA GTS 250                | 128 MH/s
+NVIDIA GTS 450                | 144 MH/s
+NVIDIA GTX 670                | 480 MH/s
+NVIDIA GTX 970                | 2350 MH/s
+NVIDIA GTX 980                | 3260 MH/s
+NVIDIA GTX 1070               | 4140 MH/s
+NVIDIA GTX TITAN X            | 4412 MH/s
+NVIDIA GTX 1080               | 5760 MH/s
+AMD A8-7600 APU               | 120 MH/s
+AMD Radeon HD5770             | 520 MH/s
+AMD Radeon HD6850             | 600 MH/s
+AMD Radeon RX 460             | 840 MH/s
+AMD Radeon RX 470             | 957 MH/s
+AMD Radeon R9 380X            | 2058 MH/s
+AMD FirePro W9100             | 2566 MH/s
+AMD Radeon RX 480             | 2700 MH/s
+AMD Radeon RX 580             | 3180 MH/s
+AMD Radeon R9 Nano            | 3325 MH/s
 
 MH/s = million hashes per second
 
