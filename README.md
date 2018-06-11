@@ -44,26 +44,32 @@ There is a good guide for running the built version on [Ubuntu 16.04 with a NVid
 
 Build Linux
 -----------
-    xbuild scallion.sln
+Prerequisites
+
+- Get the latest mono for your linux distribution:
+
+    http://www.mono-project.com/download/
+
+- Install Common dependencies:
+
+    ```
+    sudo apt-get update
+    sudo apt-get install libssl-dev mono-devel
+    ```
+
+- AMD/OpenSource build
+    ```sudo apt-get install ocl-icd-opencl-dev```
+
+- Nvidia build
+    ```sudo apt-get install nvidia-opencl-dev nvidia-opencl-icd```
+    
+- Finally 
+    ```msbuild scallion.sln```
 
 Build Windows
 -------------
 1. Open 'scallion.sln' in VS Express for Desktop 2012
 2. Build the solution, I did everything in debug mode.
-
-Debugging Build
----------------
-Some users on recent Ubuntu and Kali have reported issues getting Scallion to build. Here's a solution that seems to have worked for them:
-```
-sudo apt install clinfo mono-complete mono-devel nvidia-opencl-common nvidia-opencl-dev nvidia-opencl-icd libssl1.0-dev
-sudo apt remove mesa-*
-xbuild scallion.sln /p:TargetFrameworkVersion="v4.5"
-```
-
-Some users also report that Error -1001 can be solved with:
-```
-sudo apt install beignet beignet-dev ocl-icd-opencl-dev ocl-icd-libopencl1
-```
 
 Usage
 -----
@@ -74,8 +80,6 @@ List devices
     $ mono scallion/bin/Debug/scallion.exe -l
 
 Generate a hash
-
-
 
     $ mono scallion/bin/Debug/scallion.exe -d 0 prefix
     Cooking up some delicious scallions...
