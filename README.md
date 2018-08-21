@@ -128,7 +128,7 @@ Generate a hash
 
 Multipattern Hashing
 --------------------
-Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. `[abcd]`) are supported. The `.` character represents any character. Onion addresses are always 16 characters long and GPG fingerprints are always 40 characters. You can find a suffix by putting `$` at the end of the match (ex. `DEAD$`). Finally, the pipe syntax (ex. `pattern1|pattern2`) can be used to find multiple patterns. Searching for multible patterns (within reason) will NOT produce a significant decrease in speed. Many regexps will produce a single pattern on the GPU and result in no speed reduction.
+Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. `[abcd]`) are supported. The `.` character represents any character. Onion addresses are always 16 characters long and GPG fingerprints are always 40 characters. You can find a suffix by putting `$` at the end of the match (ex. `DEAD$`). Finally, the pipe syntax (ex. `pattern1|pattern2`) can be used to find multiple patterns. Searching for multiple patterns (within reason) will NOT produce a significant decrease in speed. Many regexps will produce a single pattern on the GPU and result in no speed reduction.
  
 Some use cases with examples:
 - Generate a prefix followed by a number for better readability:
@@ -166,9 +166,9 @@ on the GPU and the CPU.
 
 Speed / Performance
 --------------------
-__It is important to realize that Scallion preforms a probabilistic search. Actual times may very significantly from predicated__
+__It is important to realize that Scallion performs a probabilistic search. Actual times may very significantly from predicated__
 
-The inital RSA key generation is done the CPU. An ivybridge i7 can generate 51 keys per second using a single core. Each key can provide 1 gigahash worth of exponents to mine and a decent CPU can keep up with several GPUs as it is currently implemented.
+The initial RSA key generation is done the CPU. An ivybridge i7 can generate 51 keys per second using a single core. Each key can provide 1 gigahash worth of exponents to mine and a decent CPU can keep up with several GPUs as it is currently implemented.
 
 SHA1 hashing is done on the GPU. The hashrates for several GPUs we have tested are below (grouped by manufacturer and sorted by power):
 
@@ -199,7 +199,7 @@ AMD Radeon R9 Nano            | 3325 MH/s
 
 MH/s = million hashes per second
 
-Its worth noting that Intel has released OpenCL drivers for its processors and short collisions can be found on the CPU.
+It's worth noting that Intel has released OpenCL drivers for its processors and short collisions can be found on the CPU.
 
 To calculate the number of seconds required for a given partial collision (on average), use the formula:
 
