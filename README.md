@@ -203,8 +203,8 @@ Its worth noting that Intel has released OpenCL drivers for its processors and s
 
 To calculate the number of seconds required for a given partial collision (on average), use the formula:
 
-GPU              | Speed
------------------| -------------
+Type             | Estimated time
+-----------------| --------------
 GPG Key          |  2^(4*length-1) / hashspeed
 .onion Address   |  2^(5*length-1) / hashspeed
 
