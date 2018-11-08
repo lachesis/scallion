@@ -268,7 +268,7 @@ namespace OpenSSL.Core
 			BigNumber ret = new BigNumber();
 			Context ctx = new Context();
 			ctx.Start();
-			Native.ExpectSuccess(Native.BN_mod_inverse(ret.Handle, lhs.Handle, rhs.Handle, ctx.Handle));
+			Native.ExpectNonNull(Native.BN_mod_inverse(ret.Handle, lhs.Handle, rhs.Handle, ctx.Handle));
 			ctx.End();
 			return ret;
 		}

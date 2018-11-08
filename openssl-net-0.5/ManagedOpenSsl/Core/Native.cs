@@ -1104,7 +1104,7 @@ namespace OpenSSL.Core
 		//[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		//public extern static int BN_div(IntPtr rv, IntPtr rem, IntPtr m, IntPtr d, IntPtr ctx);
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
-		public extern static int BN_mod_inverse(IntPtr ret, IntPtr a, IntPtr c, IntPtr ctx);
+		public extern static IntPtr BN_mod_inverse(IntPtr ret, IntPtr a, IntPtr c, IntPtr ctx);
 		[DllImport(DLLNAME, CallingConvention=CallingConvention.Cdecl)]
 		public extern static int BN_gcd(IntPtr r, IntPtr a, IntPtr b, IntPtr ctx);
 		
