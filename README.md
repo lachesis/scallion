@@ -42,6 +42,24 @@ Just want the latest binary version? Grab it [here](https://github.com/lachesis/
 
 There is a good guide for running the built version on [Ubuntu 16.04 with a NVidia GeForce GTX 1060](https://www.thomaswhite.se/generating-a-custom-onion-address-ubuntu/).
 
+
+Docker (nvidia GPUs)
+-----------
+Prerequisites
+
+- Have the [nvidia-docker container](https://github.com/NVIDIA/nvidia-docker) runtime
+
+- Build the container:
+    ```
+    docker build -t scallion -f Dockerfile.nvidia .
+    ```
+- Run:
+   ```
+   docker run -ti --rm scallion -l
+   ```
+   ![](https://user-images.githubusercontent.com/9354925/53215957-37ed6100-3653-11e9-97d0-97a6c06eabe4.png)
+
+
 Build Linux
 -----------
 Prerequisites
@@ -183,6 +201,7 @@ NVIDIA GTS 450                | 144 MH/s
 NVIDIA GTX 670                | 480 MH/s
 NVIDIA GTX 970                | 2350 MH/s
 NVIDIA GTX 980                | 3260 MH/s
+NVIDIA GTX 1050 (M)           | 1400 MH/s
 NVIDIA GTX 1070               | 4140 MH/s
 NVIDIA GTX TITAN X            | 4412 MH/s
 NVIDIA GTX 1080               | 5760 MH/s
