@@ -203,6 +203,7 @@ NVIDIA GTX 970                | 2350 MH/s
 NVIDIA GTX 980                | 3260 MH/s
 NVIDIA GTX 1050 (M)           | 1400 MH/s
 NVIDIA GTX 1070               | 4140 MH/s
+NVIDIA GTX 1070 TI            | 5100 MH/s
 NVIDIA GTX TITAN X            | 4412 MH/s
 NVIDIA GTX 1080               | 5760 MH/s
 AMD A8-7600 APU               | 120 MH/s
