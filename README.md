@@ -186,6 +186,7 @@ NVIDIA GTX 980                | 3260 MH/s
 NVIDIA GTX 1070               | 4140 MH/s
 NVIDIA GTX TITAN X            | 4412 MH/s
 NVIDIA GTX 1080               | 5760 MH/s
+NVIDIA Tesla V100             | 11646 MH/s
 AMD A8-7600 APU               | 120 MH/s
 AMD Radeon HD5770             | 520 MH/s
 AMD Radeon HD6850             | 600 MH/s
