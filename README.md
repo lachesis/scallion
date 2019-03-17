@@ -2,7 +2,7 @@ Scallion
 ========
 Scallion lets you create vanity GPG keys and .onion addresses (for [Tor's](https://www.torproject.org/) [hidden services](https://www.torproject.org/docs/hidden-services)) using OpenCL.
 
-Scallion runs on Mono (tested in Arch Linux) and .NET 3.5+ (tested on Windows 7 and Server 2008). 
+Scallion runs on Mono (tested in Arch Linux) and .NET 3.5+ (tested on Windows 7 and Server 2008).
 
 Scallion is currently in beta stage and under active development. Nevertheless, we feel that it is ready for use. Improvements are expected primarily in performance, user interface, and ease of installation, not in the overall algorithm used to generate keys.
 
@@ -13,14 +13,14 @@ FAQ
 Here are some frequently asked questions and their answers:
 
 - Why generate GPG keys?
-   
+
    Scallion was used to find collisions for every 32bit key id in the Web of Trust's strong set demonstrating how insecure 32bit key ids are. There was/is [a talk at DEFCON](https://www.defcon.org/html/defcon-22/dc-22-speakers.html#Klafter) ([video](https://www.youtube.com/watch?v=Ow-YcP_KsIw)) and additional info can be found at [https://evil32.com/](https://evil32.com/).
 
 - What are valid characters?
 
     Tor .onion addresses use [Base32](http://www.ietf.org/rfc/rfc4648.txt), consisting of all letters and the digits 2 through 7, inclusive. They are case-insensitive.
 
-    GPG fingerprints use [hexadecimal](http://en.wikipedia.org/wiki/Hexadecimal), consisting of the digits 0-9 and the letters A-F. 
+    GPG fingerprints use [hexadecimal](http://en.wikipedia.org/wiki/Hexadecimal), consisting of the digits 0-9 and the letters A-F.
 
 - Can you use Bitcoin ASICs (e.g. Jalapeno, KnC) to accelerate this process?
 
@@ -62,9 +62,25 @@ Prerequisites
 
 - Nvidia build
     ```sudo apt-get install nvidia-opencl-dev nvidia-opencl-icd```
-    
-- Finally 
+
+- Finally
     ```msbuild scallion.sln```
+
+
+Docker Linux (nvidia GPUs only)
+-----------
+
+1. Have the [nvidia-docker container](https://github.com/NVIDIA/nvidia-docker) runtime
+
+2. Build the container:
+    ```
+    docker build -t scallion -f Dockerfile.nvidia .
+    ```
+3. Run:
+   ```
+   docker run --runtime=nvidia -ti --rm scallion -l
+   ```
+   <a href="https://user-images.githubusercontent.com/9354925/53215957-37ed6100-3653-11e9-97d0-97a6c06eabe4.png" target="_blank">screenshot of expected output</a>
 
 Build Windows
 -------------
@@ -129,24 +145,24 @@ Generate a hash
 Multipattern Hashing
 --------------------
 Scallion supports finding one or more of multiple patterns through a primitive regex syntax. Only character classes (ex. `[abcd]`) are supported. The `.` character represents any character. Onion addresses are always 16 characters long and GPG fingerprints are always 40 characters. You can find a suffix by putting `$` at the end of the match (ex. `DEAD$`). Finally, the pipe syntax (ex. `pattern1|pattern2`) can be used to find multiple patterns. Searching for multible patterns (within reason) will NOT produce a significant decrease in speed. Many regexps will produce a single pattern on the GPU and result in no speed reduction.
- 
+
 Some use cases with examples:
 - Generate a prefix followed by a number for better readability:
-   
+
         mono scallion.exe prefix[234567]
 
 - Search for several patterns at once (n.b. -c causes scallion to continue generating even once it gets a hit)
-    
+
         mono scallion.exe -c prefix scallion hashes
         mono scallion.exe -c "prefix|scallion|hashes"
 
 - Search for the suffix "badbeef"
-    
+
         mono scallion.exe .........badbeef
         mono scallion.exe --gpg badbeef$ # Generate GPG key
 
 - Complicated self explanatory example:
-       
+
         mono scallion.exe "suffixa$|suffixb$|prefixa|prefixb|a.suffix$|a.test.$"
 
 How does Scallion work?
@@ -183,7 +199,9 @@ NVIDIA GTS 450                | 144 MH/s
 NVIDIA GTX 670                | 480 MH/s
 NVIDIA GTX 970                | 2350 MH/s
 NVIDIA GTX 980                | 3260 MH/s
+NVIDIA GTX 1050 (M)           | 1400 MH/s
 NVIDIA GTX 1070               | 4140 MH/s
+NVIDIA GTX 1070 TI            | 5100 MH/s
 NVIDIA GTX TITAN X            | 4412 MH/s
 NVIDIA GTX 1080               | 5760 MH/s
 AMD A8-7600 APU               | 120 MH/s
