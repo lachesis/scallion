@@ -213,6 +213,7 @@ AMD FirePro W9100             | 2566 MH/s
 AMD Radeon RX 480             | 2700 MH/s
 AMD Radeon RX 580             | 3180 MH/s
 AMD Radeon R9 Nano            | 3325 MH/s
+AMD Vega Frontier Edition     | 7119 MH/s
 
 MH/s = million hashes per second
 
