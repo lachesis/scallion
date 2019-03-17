@@ -40,8 +40,6 @@ Binary Download
 ---------------
 Just want the latest binary version? Grab it [here](https://github.com/lachesis/scallion/raw/binaries/scallion-v2.0.zip).
 
-There is a good guide for running the built version on [Ubuntu 16.04 with a NVidia GeForce GTX 1060](https://www.thomaswhite.se/generating-a-custom-onion-address-ubuntu/).
-
 Build Linux
 -----------
 Prerequisites
