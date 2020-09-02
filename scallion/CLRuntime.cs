@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using OpenSSL.Core;
 using OpenSSL.Crypto;
 using System.Threading;
+using System.Text.RegularExpressions;
 
 namespace scallion
 {
@@ -222,6 +223,98 @@ namespace scallion
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
 
+			// english language common words/digrams and their "score"
+			List<List<string>> ls = new List<List<string>>();
+			ls.Add(new List<string>() { "th",	"1.52" });
+			ls.Add(new List<string>() { "he",	"1.28" });
+			ls.Add(new List<string>() { "in",	"0.94" });
+			ls.Add(new List<string>() { "er",	"0.82" });
+			ls.Add(new List<string>() { "an",	"0.86" });
+			ls.Add(new List<string>() { "re",	"0.63" });
+			ls.Add(new List<string>() { "nd",	"0.59" });
+			ls.Add(new List<string>() { "at",	"0.57" });
+			ls.Add(new List<string>() { "on",	"0.56" });
+			ls.Add(new List<string>() { "nt",	"0.56" });
+			ls.Add(new List<string>() { "ha",	"0.56" });
+			ls.Add(new List<string>() { "es",	"0.55" });
+			ls.Add(new List<string>() { "st",	"0.55" });
+			ls.Add(new List<string>() { "en",	"0.54" });
+			ls.Add(new List<string>() { "ed",	"0.53" });
+			ls.Add(new List<string>() { "to",	"0.52" });
+			ls.Add(new List<string>() { "it",	"0.50" });
+			ls.Add(new List<string>() { "ou",	"0.50" });
+			ls.Add(new List<string>() { "ea",	"0.47" });
+			ls.Add(new List<string>() { "hi",	"0.46" });
+			ls.Add(new List<string>() { "is",	"0.46" });
+			ls.Add(new List<string>() { "or",	"0.43" });
+			ls.Add(new List<string>() { "ti",	"0.34" });
+			ls.Add(new List<string>() { "as",	"0.33" });
+			ls.Add(new List<string>() { "te",	"0.27" });
+			ls.Add(new List<string>() { "et",	"0.19" });
+			ls.Add(new List<string>() { "ng",	"0.18" });
+			ls.Add(new List<string>() { "of",	"0.16" });
+			ls.Add(new List<string>() { "al",	"0.09" });
+			ls.Add(new List<string>() { "de",	"0.09" });
+			ls.Add(new List<string>() { "se",	"0.08" });
+			ls.Add(new List<string>() { "le",	"0.08" });
+			ls.Add(new List<string>() { "sa",	"0.06" });
+			ls.Add(new List<string>() { "si",	"0.05" });
+			ls.Add(new List<string>() { "ar",	"0.04" });
+			ls.Add(new List<string>() { "ve",	"0.04" });
+			ls.Add(new List<string>() { "ra",	"0.04" });
+			ls.Add(new List<string>() { "ld",	"0.02" });
+			ls.Add(new List<string>() { "ur",	"0.02" });
+			ls.Add(new List<string>() { "the",  "7.14" });
+			ls.Add(new List<string>() { "of",   "4.16" });
+			ls.Add(new List<string>() { "and",  "3.04" });
+			ls.Add(new List<string>() { "to",   "2.6" });
+			ls.Add(new List<string>() { "in",   "2.27" });
+//			ls.Add(new List<string>() { "a",    "2.06" });
+			ls.Add(new List<string>() { "is",   "1.13" });
+			ls.Add(new List<string>() { "that", "1.08" });
+			ls.Add(new List<string>() { "for",  "0.88" });
+			ls.Add(new List<string>() { "it",   "0.77" });
+			ls.Add(new List<string>() { "as",   "0.77" });
+			ls.Add(new List<string>() { "was",  "0.74" });
+			ls.Add(new List<string>() { "with", "0.7" });
+			ls.Add(new List<string>() { "be",   "0.65" });
+			ls.Add(new List<string>() { "by",   "0.63" });
+			ls.Add(new List<string>() { "on",   "0.62" });
+			ls.Add(new List<string>() { "not",  "0.61" });
+			ls.Add(new List<string>() { "he",   "0.55" });
+//			ls.Add(new List<string>() { "i",    "0.52" });
+			ls.Add(new List<string>() { "this", "0.51" });
+			ls.Add(new List<string>() { "are",  "0.50" });
+			ls.Add(new List<string>() { "or",   "0.49" });
+			ls.Add(new List<string>() { "his",  "0.49" });
+			ls.Add(new List<string>() { "from", "0.47" });
+			ls.Add(new List<string>() { "at",   "0.46" });
+			ls.Add(new List<string>() { "which","0.42" });
+			ls.Add(new List<string>() { "but",  "0.38" });
+			ls.Add(new List<string>() { "have", "0.37" });
+			ls.Add(new List<string>() { "an",   "0.37" });
+			ls.Add(new List<string>() { "had",  "0.35" });
+			ls.Add(new List<string>() { "they", "0.33" });
+			ls.Add(new List<string>() { "you",  "0.31" });
+			ls.Add(new List<string>() { "were", "0.31" });
+			ls.Add(new List<string>() { "their","0.29" });
+			ls.Add(new List<string>() { "one",  "0.29" });
+			ls.Add(new List<string>() { "all",  "0.28" });
+			ls.Add(new List<string>() { "we",   "0.28" });
+			ls.Add(new List<string>() { "can",  "0.22" });
+			ls.Add(new List<string>() { "her",  "0.22" });
+			ls.Add(new List<string>() { "has",  "0.22" });
+			ls.Add(new List<string>() { "there","0.22" });
+			ls.Add(new List<string>() { "been", "0.22" });
+			ls.Add(new List<string>() { "if",   "0.21" });
+			ls.Add(new List<string>() { "more", "0.21" });
+			ls.Add(new List<string>() { "when", "0.20" });
+			ls.Add(new List<string>() { "will", "0.20" });
+			ls.Add(new List<string>() { "would","0.20" });
+			ls.Add(new List<string>() { "who",  "0.20" });
+			ls.Add(new List<string>() { "so",   "0.19" });
+			ls.Add(new List<string>() { "no",   "0.19" });
+
 			// mhhm very nice UNCOMMENTED code.
 			// really doesn't help the fact i can't tell what tf each part of this program is actually doing. :|
 
@@ -429,7 +522,7 @@ namespace scallion
 				profiler.EndRegion("read results");
 
 				loop++;
-				Console.Write("\r");
+				//Console.Write("\r");
 				long hashes = (long)workSize * (long)loop;
 
 				/*Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}  ", 
@@ -499,50 +592,33 @@ namespace scallion
 
 									string xml = Util.ToXml(match);
 
+									// Some kind of basic frequency analysis, inaccurate but makes it easier to spot out patterns within the generated addresses.
 									bool isPossibleEnglish = false;
-
-									string[] digraphs  = "th er on an re he in ed nd ha at en es of or nt ea ti to it st io le is ou ar as de rt ve".Split(' ');
-									string[] trigraphs = "the and tha ent ion tio for nde has nce edt tis oft sth men".Split(' ');
-									string[] doubles   = "ss ee tt ff ll mm oo".Split(' ');
-
-									int frequencyscore = 0;
-
+									float frequencyscore = 0;
 									string rawonion = input.Rsa.OnionHash.Replace(parms.Regex, "");
 
-									int i = 0;
-									foreach (string dg in digraphs) {
-										if (rawonion.Contains(dg))
-										{
-											frequencyscore += digraphs.Length - i;
-										}
-										i++;
+									foreach (List<string> l1 in ls) {
+										int cnt = Regex.Matches(rawonion, l1[0]).Count;
+
+										if (cnt > 0)
+                                        {
+											frequencyscore += float.Parse(l1[1]) * cnt; // could be improved on if i changed the list format.
+                                        }
 									}
 
-									i = 0;
-									foreach (string tg in trigraphs)
-									{
-										if (rawonion.Contains(tg))
-										{
-											frequencyscore += trigraphs.Length - i;
-										}
+									isPossibleEnglish = frequencyscore >= 1.5; // arbitrary threshhold.
 
-										i++;
-									}
+									string scorestars = " [";
+									if (isPossibleEnglish)
+                                    {
+										for (int j = 0; j < (int)(frequencyscore / 0.5); j++)
+                                        {
+											scorestars += "*";
+                                        }
+                                    }
+									scorestars += "]";
 
-									i = 0;
-									foreach (string db in doubles)
-									{
-										if (rawonion.Contains(db))
-										{
-											frequencyscore += doubles.Length - i;
-										}
-
-										i++;
-									}
-
-									isPossibleEnglish = frequencyscore >= 35;
-
-									Console.WriteLine("Found: " + match.Hash + " [" + frequencyscore + "]" + (isPossibleEnglish ? " [****]" : ""));
+									Console.WriteLine(match.Hash + " [" + frequencyscore + "]" + (isPossibleEnglish ? scorestars : ""));
 
 									if(!String.IsNullOrEmpty(parms.Command))
 									{
@@ -555,7 +631,9 @@ namespace scallion
 									}
 
 									if (parms.KeyOutputPath != null)
-										System.IO.File.AppendAllText(parms.KeyOutputPath, xml);
+									{
+										System.IO.File.AppendAllText(parms.KeyOutputPath + "\\" + match.Hash + ".onion", xml);
+									}
 
 									if (!parms.ContinueGeneration || (parms.QuitAfterXKeysFound != 0 && seenMatches.Count >= parms.QuitAfterXKeysFound)) {
 										success = true;
