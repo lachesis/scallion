@@ -204,6 +204,12 @@ namespace scallion
 			}
 		}
 
+		private void STAT(string str)
+        {
+			Console.WriteLine(str);
+			ProgramParameters.Instance.guiInstance.SetStatus(str);
+        }
+
 		private TimeSpan PredictedRuntime(double hashes_per_win, long speed)
 		{
 			//int len = prefix.Length;
@@ -326,7 +332,7 @@ namespace scallion
 			int numThreadsCreateWork	= (int)parms.CpuThreads;
 			KernelType kernelt			= parms.KernelType;
 
-			Console.WriteLine("Cooking up some delicious scallions...");
+			STAT("Cooking up some delicious scallions...");
 			this.workSize = (uint)workSize;
 			profiler = new Profiler();
 			#region init
@@ -367,20 +373,20 @@ namespace scallion
 			Console.WriteLine("Using work group size {0}",workGroupSize);
 			CLContext context = new CLContext(device.DeviceId);
 
-			Console.Write("Compiling kernel... ");
+			STAT("Compiling kernel... ");
 			string kernel_text = KernelGenerator.GenerateKernel(parms, parms.ToolConfig, parms.ExponentIndex);
 			//string kernel_text = KernelGenerator.GenerateKernel(parms,gpu_bitmasks.Length/3,max_items_per_key,gpu_bitmasks.Take(3).ToArray(),all_patterns[0],all_patterns.Length,parms.ExponentIndex);
             if(parms.SaveGeneratedKernelPath != null)
                 System.IO.File.WriteAllText(parms.SaveGeneratedKernelPath, kernel_text);
             IntPtr program = context.CreateAndCompileProgram(kernel_text);
 
-			Console.WriteLine("done.");
+			STAT("done.");
 
             //
             // Test SHA1 algo
             // 
 			if (!parms.SkipShaTest) {
-                Console.WriteLine("Testing SHA1 hash...");
+				STAT("Testing SHA1 hash...");
 
                 CLKernel shaTestKern = context.CreateKernel(program, "shaTest");
                 CLBuffer<uint> bufSuccess = context.CreateBuffer(OpenTK.Compute.CL10.MemFlags.MemReadWrite | OpenTK.Compute.CL10.MemFlags.MemCopyHostPtr, new uint[5]);
@@ -420,7 +426,7 @@ namespace scallion
                 }
                 else
                 {
-                    Console.WriteLine("Looks good!");
+					STAT("hash test looks good!");
                 }
             }
 
@@ -494,7 +500,7 @@ namespace scallion
 				}
 				if (input == null) //If we have run out of work sleep for a bit
 				{
-					Console.WriteLine("Lack of work for the GPU!! Taking a nap!!");
+					STAT("Lack of work for the GPU!! Taking a nap!!");
 					Thread.Sleep(2500);
 					continue;
 				}
@@ -618,7 +624,14 @@ namespace scallion
                                     }
 									scorestars += "]";
 
-									Console.WriteLine(match.Hash + " [" + frequencyscore + "]" + (isPossibleEnglish ? scorestars : ""));
+									string txt = match.Hash + " [" + frequencyscore + "]" + (isPossibleEnglish ? scorestars : "");
+									STAT(txt);
+
+									if (parms.guiInstance != null)
+                                    {
+										parms.guiInstance.PushResult(txt);
+										STAT("Found onion!");
+                                    }
 
 									if(!String.IsNullOrEmpty(parms.Command))
 									{

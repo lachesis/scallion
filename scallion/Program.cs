@@ -9,6 +9,8 @@ using OpenSSL.Crypto;
 using OpenSSL.Core;
 using Mono.Options;
 using System.Reflection;
+using System.Threading;
+using System.Windows.Forms;
 
 namespace scallion
 {
@@ -50,6 +52,9 @@ namespace scallion
         public bool TextMode = false;
 
 		public ToolConfig ToolConfig = null;
+
+        public Thread GUIThread = null;
+        public GUI guiInstance = null;
 
 		public int ExponentIndex {
 			get {
@@ -160,6 +165,15 @@ namespace scallion
             }
         }
 
+        public static void GUIThread()
+        {
+            ProgramParameters parms = ProgramParameters.Instance;
+
+            parms.guiInstance = new GUI();
+
+            Application.Run(parms.guiInstance);
+        }
+
         public static void Help(OptionSet p)
         {
             Console.WriteLine("Usage: scallion [OPTIONS]+ regex [regex]+");
@@ -168,109 +182,114 @@ namespace scallion
             Console.WriteLine("Options:");
             p.WriteOptionDescriptions(Console.Out);
         }
-        static CLRuntime _runtime = new CLRuntime();
+        public static CLRuntime _runtime = new CLRuntime();
+
         static void Main(string[] args)
         {
 			OpenSSL.Core.ThreadInitialization.InitializeThreads();
 
-			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("77777777")[0]);
-			//Console.WriteLine("{0:x}",TorBase32.FromBase32Str("aaaaaaaa")[0]);
-
-			// TODO: Clean up gpg fingerprint test and move it elsewhere
-			/*RSAWrapper r = new RSAWrapper();
-			r.Timestamp = 1387430955;
-			r.Rsa.PublicModulus = BigNumber.FromHexString("00E2FC646FF48AFC8C2A7DDF1B99CECD21A0AEC603DBAAA1A7ADF6836A6CED82BAE694AC5A4ACBD7FC1D36B2C677BE25E400330D295D044C9F6AFAEA45A8CF370F59E398F853FFCED03395D297CEED47C0E9EF2C358C05399E1F8A878E6E044F1AB7D82A162C77EE956B0A9B54C910000EF7122CC8BBB1746872968F05E7CFD563");
-			r.Rsa.PublicExponent = 0x010001;
-			Console.WriteLine("GPG Fingerprint: {0}", r.GPG_fingerprint_string);*/
+            bool useGUI = true;
 
             ProgramParameters parms = ProgramParameters.Instance;
             Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
             OptionSet p = new OptionSet()
-                .Add<uint>(     "k|keysize=",       "Specifies keysize for the RSA key",                        (i) => parms.KeySize = i)
-                .Add(           "n|nonoptimized",   "Runs non-optimized kernel",                                parseMode(Mode.NonOptimized))
-                .Add(           "l|listdevices",    "Lists the devices that can be used.",                      parseMode(Mode.ListDevices))
-                .Add(           "h|?|help",         "Displays command line usage help.",                        parseMode(Mode.Help))
-				.Add(           "gpg",              "GPG vanitygen mode.",                                      (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
-                .Add<uint>(     "d|device=",        "Specifies the opencl device that should be used.",         (i) => parms.DeviceId = i)
-                .Add<uint>(     "g|groupsize=",     "Specifies the number of threads in a workgroup.",          (i) => parms.WorkGroupSize = i)
-                .Add<uint>(     "w|worksize=",      "Specifies the number of hashes preformed at one time.",    (i) => parms.WorkSize = i)
-                .Add<uint>(     "t|cputhreads=",    "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
-				.Add<string>(   "p|save-kernel=",   "Saves the generated kernel to this path.",                 (i) => parms.SaveGeneratedKernelPath = i)
-                .Add<string>(   "o|output=",        "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
-				.Add(           "skip-sha-test",    "Skip the SHA-1 test at startup.",                          (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
-				.Add<uint>(     "quit-after=",      "Quit after this many keys have been found.",               (i) => parms.QuitAfterXKeysFound = i)
-				.Add<uint>(     "timestamp=",       "Use this value as a timestamp for the RSA key.",           (i) => parms.UnixTs = i)
-                .Add(           "c|continue",       "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
-                .Add<string>(   "command=",         "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt\nIf the command returns with a non-zero exit code, the program will return the same code.", (i) => parms.Command = i)
-                .Add(           "text",             "Only looks for onion hashes which contain no numbers",     (i) => parms.TextMode = true)
+                .Add<uint>("k|keysize=", "Specifies keysize for the RSA key", (i) => parms.KeySize = i)
+                .Add("n|nonoptimized", "Runs non-optimized kernel", parseMode(Mode.NonOptimized))
+                .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
+                .Add("h|?|help", "Displays command line usage help.", parseMode(Mode.Help))
+                .Add("gpg", "GPG vanitygen mode.", (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
+                .Add<uint>("d|device=", "Specifies the opencl device that should be used.", (i) => parms.DeviceId = i)
+                .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
+                .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
+                .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
+                .Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
+                .Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
+                .Add("skip-sha-test", "Skip the SHA-1 test at startup.", (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
+                .Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
+                .Add<uint>("timestamp=", "Use this value as a timestamp for the RSA key.", (i) => parms.UnixTs = i)
+                .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
+                .Add<string>("command=", "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt\nIf the command returns with a non-zero exit code, the program will return the same code.", (i) => parms.Command = i)
+                .Add("text", "Only looks for onion hashes which contain no numbers", (i) => parms.TextMode = true)
+                .Add("nogui", "Disable gui.", (i) => useGUI = false)
                 ;
 
-            List<string> extra = p.Parse(args);
-
-            if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
+            if (useGUI)
             {
-                // if you just run it as .\scallion.exe (or ./scallion) it will just print help even if you pass arguments.
-                if (extra.Count < 1) parms.ProgramMode = Mode.Help;
-                else parms.Regex = extra.ToDelimitedString("|");
+                parms.GUIThread = new Thread(new ThreadStart(GUIThread));
+                parms.GUIThread.SetApartmentState(System.Threading.ApartmentState.STA);
+                parms.GUIThread.Start();
+
+                Console.WriteLine("Starting using GUI mode.");
             }
+            else
+            {   List<string> extra = p.Parse(args);
 
-            if (parms.KeyOutputPath==null)
-            {
-                Console.WriteLine("[WARN] GPG Private keys will not be shown or stored!");
-            }
+                if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
+                {
+                    // if you just run it as .\scallion.exe (or ./scallion) it will just print help even if you pass arguments.
+                    if (extra.Count < 1) parms.ProgramMode = Mode.Help;
+                    else parms.Regex = extra.ToDelimitedString("|");
+                }
 
-            if (parms.TextMode)
-            {
-                Console.WriteLine("Running to only locate onions without numbers");
-            }
+                if (parms.KeyOutputPath == null)
+                {
+                    Console.WriteLine("[WARN] GPG Private keys will not be shown or stored!");
+                }
 
-            //_runtime.Run(ProgramParameters.Instance,"prefix[abcdef]");
-            switch (parms.ProgramMode)
-            {
-                case Mode.Help:
-                    Help(p);
-                    break;
-                case Mode.ListDevices:
-                    ListDevices();
-                    break;
-                case Mode.Normal:
-		        case Mode.NonOptimized:
-		            {
-		                // If no Work Group Size provided, then query the selected device for preferred, if not found set to 32.
-		                if (parms.WorkGroupSize == 0)
-		                {
-		                    ulong preferredWorkGroupSize = 32;
-		                    uint deviceId = 0;
-		                    foreach (CLDeviceInfo device in CLRuntime.GetDevices())
-		                    {
-		                        if (!device.CompilerAvailable) continue;
-		                        if (deviceId == parms.DeviceId)
-		                        {
-		                            preferredWorkGroupSize = getPreferredWorkGroupSize(device.DeviceId);
-		                            break;
-		                        }
-		                        deviceId++;
-		                    }
+                if (parms.TextMode)
+                {
+                    Console.WriteLine("Running to only locate onions without numbers");
+                }
 
-		                    parms.WorkGroupSize = (uint)preferredWorkGroupSize;
-		                }
-						
-		                Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
-						try {
-		                	_runtime.Run(ProgramParameters.Instance);
-						}
-                        catch (ApplicationException e) {
-                            // these are handled and printed out
-                            Console.Error.WriteLine(e.Message);
-                            Environment.Exit(1);
+                switch (parms.ProgramMode)
+                {
+                    case Mode.Help:
+                        Help(p);
+                        break;
+                    case Mode.ListDevices:
+                        ListDevices();
+                        break;
+                    case Mode.Normal:
+                    case Mode.NonOptimized:
+                        {
+                            // If no Work Group Size provided, then query the selected device for preferred, if not found set to 32.
+                            if (parms.WorkGroupSize == 0)
+                            {
+                                ulong preferredWorkGroupSize = 32;
+                                uint deviceId = 0;
+                                foreach (CLDeviceInfo device in CLRuntime.GetDevices())
+                                {
+                                    if (!device.CompilerAvailable) continue;
+                                    if (deviceId == parms.DeviceId)
+                                    {
+                                        preferredWorkGroupSize = getPreferredWorkGroupSize(device.DeviceId);
+                                        break;
+                                    }
+                                    deviceId++;
+                                }
+
+                                parms.WorkGroupSize = (uint)preferredWorkGroupSize;
+                            }
+
+                            Console.CancelKeyPress += new ConsoleCancelEventHandler(Console_CancelKeyPress);
+                            try
+                            {
+                                _runtime.Run(ProgramParameters.Instance);
+                            }
+                            catch (ApplicationException e)
+                            {
+                                // these are handled and printed out
+                                Console.Error.WriteLine(e.Message);
+                                Environment.Exit(1);
+                            }
+                            finally
+                            {
+                                Shutdown();
+                            }
                         }
-						finally {
-							Shutdown();
-						}
-		            }
-            break;
+                        break;
+                }
             }
-
         }
 
 		public static void Shutdown(int code = 0)
@@ -291,7 +310,7 @@ namespace scallion
 			Environment.ExitCode = code;
 		}
 
-        static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
+        public static void Console_CancelKeyPress(object sender, ConsoleCancelEventArgs e)
         {
 			Shutdown();
             e.Cancel = true;
