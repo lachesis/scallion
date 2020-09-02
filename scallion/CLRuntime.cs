@@ -221,13 +221,17 @@ namespace scallion
 		public void Run(ProgramParameters parms)
 			 //int deviceId, int workGroupSize, int workSize, int numThreadsCreateWork, KernelType kernelt, int keysize, IEnumerable<string> patterns)
 		{
+
+			// mhhm very nice UNCOMMENTED code.
+			// really doesn't help the fact i can't tell what tf each part of this program is actually doing. :|
+
 			HashSet<string> seenMatches = new HashSet<string>();
 
-			int deviceId = (int)parms.DeviceId;
-			int workGroupSize = (int)parms.WorkGroupSize;
-			int workSize = (int)parms.WorkSize;
-			int numThreadsCreateWork = (int)parms.CpuThreads;
-			KernelType kernelt = parms.KernelType;
+			int deviceId				= (int)parms.DeviceId;
+			int workGroupSize			= (int)parms.WorkGroupSize;
+			int workSize				= (int)parms.WorkSize;
+			int numThreadsCreateWork	= (int)parms.CpuThreads;
+			KernelType kernelt			= parms.KernelType;
 
 			Console.WriteLine("Cooking up some delicious scallions...");
 			this.workSize = (uint)workSize;
@@ -428,10 +432,10 @@ namespace scallion
 				Console.Write("\r");
 				long hashes = (long)workSize * (long)loop;
 
-				Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}  ", 
+				/*Console.Write("LoopIteration:{0}  HashCount:{1:0.00}MH  Speed:{2:0.0}MH/s  Runtime:{3}  Predicted:{4}  ", 
 				              loop, hashes / 1000000.0d, hashes/gpu_runtime_sw.ElapsedMilliseconds/1000.0d, 
 				              gpu_runtime_sw.Elapsed.ToString().Split('.')[0], 
-				              parms.ToolConfig.PredictRuntime(hashes * 1000/gpu_runtime_sw.ElapsedMilliseconds));
+				              parms.ToolConfig.PredictRuntime(hashes * 1000/gpu_runtime_sw.ElapsedMilliseconds));*/
 
 				profiler.StartRegion("check results");
 				/*input.Rsa.Rsa.PublicExponent = (BigNumber)input.Results[5];
@@ -466,25 +470,80 @@ namespace scallion
 
 							if (parms.ToolConfig.CheckMatch(input.Rsa))
 							{
+
+								if (parms.TextMode)
+								{
+									if (input.Rsa.OnionHash.Any(c => char.IsDigit(c)))
+									{
+										//Console.WriteLine("Ignoring " + input.Rsa.OnionHash + " as it contains numbers");
+										continue;
+									}
+								}
+
 								input.Rsa.ChangePublicExponent(result);
 								XmlMatchOutput match = new XmlMatchOutput();
 
-								match.GeneratedDate = DateTime.UtcNow;
-								match.PublicModulus = input.Rsa.Rsa.PublicModulus;
-								match.PublicExponent = input.Rsa.Rsa.PublicExponent;
-								match.Hash = parms.ToolConfig.HashToString(input.Rsa);
+								match.GeneratedDate = DateTime.UtcNow;					// this is the current time. duhh
+								match.PublicModulus = input.Rsa.Rsa.PublicModulus;		// unk
+								match.PublicExponent = input.Rsa.Rsa.PublicExponent;	// unk
+								match.Hash = parms.ToolConfig.HashToString(input.Rsa);	// "Hash" is the onion name
 
 								if (!seenMatches.Contains(match.Hash)) {
 									seenMatches.Add(match.Hash);	
 
-									Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);									
+									//Console.WriteLine("Found new key! Found {0} unique keys.", seenMatches.Count);									
 
 									if (input.Rsa.HasPrivateKey) {
-										match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);
+										match.PrivateKey = parms.ToolConfig.PrivateKeyToString(input.Rsa);	// private GPG key. tells tor you own this hash ig.
 									}
 
 									string xml = Util.ToXml(match);
-									Console.WriteLine(xml);
+
+									bool isPossibleEnglish = false;
+
+									string[] digraphs  = "th er on an re he in ed nd ha at en es of or nt ea ti to it st io le is ou ar as de rt ve".Split(' ');
+									string[] trigraphs = "the and tha ent ion tio for nde has nce edt tis oft sth men".Split(' ');
+									string[] doubles   = "ss ee tt ff ll mm oo".Split(' ');
+
+									int frequencyscore = 0;
+
+									string rawonion = input.Rsa.OnionHash.Replace(parms.Regex, "");
+
+									int i = 0;
+									foreach (string dg in digraphs) {
+										if (rawonion.Contains(dg))
+										{
+											frequencyscore += digraphs.Length - i;
+										}
+										i++;
+									}
+
+									i = 0;
+									foreach (string tg in trigraphs)
+									{
+										if (rawonion.Contains(tg))
+										{
+											frequencyscore += trigraphs.Length - i;
+										}
+
+										i++;
+									}
+
+									i = 0;
+									foreach (string db in doubles)
+									{
+										if (rawonion.Contains(db))
+										{
+											frequencyscore += doubles.Length - i;
+										}
+
+										i++;
+									}
+
+									isPossibleEnglish = frequencyscore >= 35;
+
+									Console.WriteLine("Found: " + match.Hash + " [" + frequencyscore + "]" + (isPossibleEnglish ? " [****]" : ""));
+
 									if(!String.IsNullOrEmpty(parms.Command))
 									{
 										Console.Write("\n\n");

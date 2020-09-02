@@ -78,6 +78,7 @@
     <Compile Include="DataConvert.cs" />
     <Compile Include="RSAWrapper.cs" />
     <Compile Include="SHA1.cs" />
+    <Compile Include="TextOnionConfig.cs" />
     <Compile Include="TorBase32.cs" />
     <Compile Include="CLRuntime.cs" />
     <Compile Include="Profiler.cs" />
@@ -119,4 +120,5 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
+  <ItemGroup />
 </Project>

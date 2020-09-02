@@ -47,6 +47,8 @@ namespace scallion
 
 		public bool GPGMode = false;
 
+        public bool TextMode = false;
+
 		public ToolConfig ToolConfig = null;
 
 		public int ExponentIndex {
@@ -184,30 +186,42 @@ namespace scallion
             ProgramParameters parms = ProgramParameters.Instance;
             Func<Mode, Action<string>> parseMode = (m) => (s) => { if (!string.IsNullOrEmpty(s)) { parms.ProgramMode = m; } };
             OptionSet p = new OptionSet()
-                .Add<uint>("k|keysize=", "Specifies keysize for the RSA key", (i) => parms.KeySize = i)
-                .Add("n|nonoptimized", "Runs non-optimized kernel", parseMode(Mode.NonOptimized))
-                .Add("l|listdevices", "Lists the devices that can be used.", parseMode(Mode.ListDevices))
-                .Add("h|?|help", "Displays command line usage help.", parseMode(Mode.Help))
-				.Add("gpg", "GPG vanitygen mode.", (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
-                .Add<uint>("d|device=", "Specifies the opencl device that should be used.", (i) => parms.DeviceId = i)
-                .Add<uint>("g|groupsize=", "Specifies the number of threads in a workgroup.", (i) => parms.WorkGroupSize = i)
-                .Add<uint>("w|worksize=", "Specifies the number of hashes preformed at one time.", (i) => parms.WorkSize = i)
-                .Add<uint>("t|cputhreads=", "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
-				.Add<string>("p|save-kernel=", "Saves the generated kernel to this path.", (i) => parms.SaveGeneratedKernelPath = i)
-                .Add<string>("o|output=", "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
-				.Add("skip-sha-test", "Skip the SHA-1 test at startup.", (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
-				.Add<uint>("quit-after=", "Quit after this many keys have been found.", (i) => parms.QuitAfterXKeysFound = i)
-				.Add<uint>("timestamp=", "Use this value as a timestamp for the RSA key.", (i) => parms.UnixTs = i)
-                .Add("c|continue", "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
-                .Add<string>("command=", "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt\nIf the command returns with a non-zero exit code, the program will return the same code.", (i) => parms.Command = i)
+                .Add<uint>(     "k|keysize=",       "Specifies keysize for the RSA key",                        (i) => parms.KeySize = i)
+                .Add(           "n|nonoptimized",   "Runs non-optimized kernel",                                parseMode(Mode.NonOptimized))
+                .Add(           "l|listdevices",    "Lists the devices that can be used.",                      parseMode(Mode.ListDevices))
+                .Add(           "h|?|help",         "Displays command line usage help.",                        parseMode(Mode.Help))
+				.Add(           "gpg",              "GPG vanitygen mode.",                                      (i) => { if (!string.IsNullOrEmpty(i)) parms.GPGMode = true; })
+                .Add<uint>(     "d|device=",        "Specifies the opencl device that should be used.",         (i) => parms.DeviceId = i)
+                .Add<uint>(     "g|groupsize=",     "Specifies the number of threads in a workgroup.",          (i) => parms.WorkGroupSize = i)
+                .Add<uint>(     "w|worksize=",      "Specifies the number of hashes preformed at one time.",    (i) => parms.WorkSize = i)
+                .Add<uint>(     "t|cputhreads=",    "Specifies the number of CPU threads to use when creating work. (EXPERIMENTAL - OpenSSL not thread-safe)", (i) => parms.CpuThreads = i)
+				.Add<string>(   "p|save-kernel=",   "Saves the generated kernel to this path.",                 (i) => parms.SaveGeneratedKernelPath = i)
+                .Add<string>(   "o|output=",        "Saves the generated key(s) and address(es) to this path.", (i) => parms.KeyOutputPath = i)
+				.Add(           "skip-sha-test",    "Skip the SHA-1 test at startup.",                          (i) => { if (!string.IsNullOrEmpty(i)) parms.SkipShaTest = true; })
+				.Add<uint>(     "quit-after=",      "Quit after this many keys have been found.",               (i) => parms.QuitAfterXKeysFound = i)
+				.Add<uint>(     "timestamp=",       "Use this value as a timestamp for the RSA key.",           (i) => parms.UnixTs = i)
+                .Add(           "c|continue",       "Continue to search for keys rather than exiting when a key is found.", (i) => { if (!string.IsNullOrEmpty(i)) parms.ContinueGeneration = true; })
+                .Add<string>(   "command=",         "When a match is found specified external program is called with key passed to stdin.\nExample: \"--command 'tee example.txt'\" would save the key to example.txt\nIf the command returns with a non-zero exit code, the program will return the same code.", (i) => parms.Command = i)
+                .Add(           "text",             "Only looks for onion hashes which contain no numbers",     (i) => parms.TextMode = true)
                 ;
 
             List<string> extra = p.Parse(args);
 
             if (parms.ProgramMode == Mode.NonOptimized || parms.ProgramMode == Mode.Normal)
             {
+                // if you just run it as .\scallion.exe (or ./scallion) it will just print help even if you pass arguments.
                 if (extra.Count < 1) parms.ProgramMode = Mode.Help;
                 else parms.Regex = extra.ToDelimitedString("|");
+            }
+
+            if (parms.KeyOutputPath==null)
+            {
+                Console.WriteLine("[WARN] GPG Private keys will not be shown or stored!");
+            }
+
+            if (parms.TextMode)
+            {
+                Console.WriteLine("Running to only locate onions without numbers");
             }
 
             //_runtime.Run(ProgramParameters.Instance,"prefix[abcdef]");
