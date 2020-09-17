@@ -1,3 +1,5 @@
+This version of scallion adds a filter for only finding non-numerical onions and a quick GUI to get output fast. Something that needs changing is the fact you can't directly copy the found onion addresses from the list.
+
 Scallion
 ========
 Scallion lets you create vanity GPG keys and .onion addresses (for [Tor's](https://www.torproject.org/) [hidden services](https://www.torproject.org/docs/hidden-services)) using OpenCL.
