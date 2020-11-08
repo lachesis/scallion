@@ -147,7 +147,6 @@ namespace scallion
 					if(exp_index != parms.ExponentIndex) {
 						Console.WriteLine("Exponent index doesn't match - skipping key");
 						skip_flag = true;
-						break;
 					}
 					/*if(i != 4) { // exponent length assumed to be 4 in the kernel
 						Console.WriteLine("Exponent length doesn't match - skipping key");
