@@ -207,6 +207,7 @@ NVIDIA GTX 670                | 480 MH/s
 NVIDIA GTX 970                | 2350 MH/s
 NVIDIA GTX 980                | 3260 MH/s
 NVIDIA GTX 1050 (M)           | 1400 MH/s
+NVIDIA GTX 1660 TI            | 3190 MH/s
 NVIDIA GTX 1070               | 4140 MH/s
 NVIDIA GTX 1070 TI            | 5100 MH/s
 NVIDIA GTX TITAN X            | 4412 MH/s
